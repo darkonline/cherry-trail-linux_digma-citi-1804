@@ -1,0 +1,29 @@
+capture from 2026-11-14 17:57:21
+## compositor / display log
+Nov 14 17:57:22.802523 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:57:24.905309 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:57:27.712207 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:57:29.814376 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:57:32.618894 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:57:35.422489 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:57:38.226853 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:57:41.032338 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:57:43.837376 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:57:47.343321 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:57:48.746222 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:57:49.906351 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:57:52.251873 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:57:54.354399 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:57:55.420766 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:57:57.860458 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:57:59.964781 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:58:02.066505 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:58:04.870901 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:58:06.272963 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:58:09.076892 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:58:10.276786 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:984] connector DSI-1: Turning off
+Nov 14 17:58:15.539988 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+Nov 14 17:58:16.008801 digma-citi-1804 phoc[4332]: [libinput] event8  - gpio-keys: client bug: event processing lagging behind by 332ms, your system is too slow
+Nov 14 17:58:16.008851 digma-citi-1804 phoc[4332]: [libinput] event8  - gpio-keys: WARNING: log rate limit exceeded (5 msgs per 60min). Discarding future messages.
+Nov 14 17:58:16.219261 digma-citi-1804 phoc[4332]: [backend/drm/drm.c:980] connector DSI-1: Modesetting with 1200x1920 @ 60.000 Hz
+## sensor proxy signals
