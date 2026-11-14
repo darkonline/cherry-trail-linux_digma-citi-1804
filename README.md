@@ -1,4 +1,4 @@
-# Linux (postmarketOS) on Digma CITI 1804
+# Linux (postmarketOS) on Digma CITI 1804 (Cherry Trail)
 
 [Русский](#русский) · [English](#english)
 
