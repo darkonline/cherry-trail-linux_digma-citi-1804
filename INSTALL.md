@@ -44,13 +44,29 @@
 5. Подключитесь к Wi-Fi через верхнюю панель.
 6. Откройте приложение **«Консоль»** (Console или King's Cross). В нём вы будете вводить все дальнейшие команды. Команды с `sudo` запросят ваш пароль.
 
+### Шаг 4 (быстрый путь). Всё одной командой
+
+Шаги 4, 5, 5а и 7 можно выполнить одним скриптом. Он ставит пакеты, применяет все настройки железа, собирает модули Bluetooth и глубокого сна под установленное ядро (при другой версии ядра сам скачивает нужные исходники с kernel.org) и ставит приложения Flathub:
+
+```sh
+passwd
+sudo apk add git
+git clone https://github.com/darkonline/cherry-trail-linux_digma-citi-1804.git ~/digma-citi1804-linux
+sh ~/digma-citi1804-linux/setup/restore.sh
+sudo reboot
+```
+
+Запускайте от обычного пользователя, без `sudo`: пароль скрипт спросит сам. `--no-apps` — только настройка железа, без приложений; `--check` — показать, что будет сделано, ничего не меняя. Повторный запуск безопасен. Дальше переходите к шагу 6.
+
+Если хотите делать всё вручную или понять, что делает скрипт, — шаги ниже.
+
 ### Шаг 4. Обновите систему и примените настройки планшета
 
 ```sh
 passwd                                  # задайте свой пароль вместо 147147
 sudo apk update && sudo apk upgrade     # обновление системы и ядра; запускайте здесь, а не по SSH
 sudo apk add git
-git clone https://github.com/darkonline/digma-citi1804-linux.git
+git clone https://github.com/darkonline/cherry-trail-linux_digma-citi-1804.git ~/digma-citi1804-linux
 cd digma-citi1804-linux
 ```
 
@@ -106,6 +122,20 @@ sudo reboot
 - Исходники в `src/` взяты из ядра **6.18.63**. Если `uname -r` показывает другую версию, скачайте с <https://kernel.org> архив ядра этой версии и замените файлы из `src/` файлами из папки `drivers/bluetooth/` архива.
 - ⚠️ **После каждого обновления ядра модуль нужно собирать заново.** Без этого Bluetooth пропадёт, а остальная система будет работать.
 
+### Шаг 5а. Глубокий сон (экономия батареи во сне)
+
+Без этого шага процессор во сне не уходит в состояние S0i3: неиспользуемый процессор камер (ISP) остаётся включённым, и батарея садится примерно на 3 % в час. Модуль выключает ISP:
+
+```sh
+cd ~/digma-citi1804-linux/power-isp
+sh build.sh
+sudo install -D -m644 intel_atomisp2_pm.ko /lib/modules/$(uname -r)/updates/intel_atomisp2_pm.ko
+sudo depmod $(uname -r)
+sudo reboot
+```
+
+Проверка после сна: `sudo cat /sys/kernel/debug/pmc_atom/sleep_state` — значение `S0I3 Residency` должно расти. Как и Bluetooth, модуль пересобирается после каждого обновления ядра.
+
 ### Шаг 6. Установка на внутреннюю память — стирает Windows
 
 Проверьте, что с флешки всё работает. Затем, всё ещё загрузившись с флешки:
@@ -146,7 +176,7 @@ sudo sh ~/digma-citi1804-linux/install/install-emmc.sh
 | Тач не работает | Проверьте, есть ли файл `/lib/firmware/silead/mssl1680.fw` и выполнена ли `sudo mkinitfs`. |
 | Нет регулировки яркости | Должен быть файл `/etc/mkinitfs/modules/00-citi1804.modules`, затем `sudo mkinitfs`. |
 | Звук тихий и «булькает» | Проверьте, есть ли `/etc/kernel-cmdline.d/91-citi1804-audio.conf`, затем `sudo mkinitfs`. |
-| Пропал Bluetooth | Обновилось ядро — повторите шаг 5. |
+| Пропал Bluetooth или батарея снова быстро садится во сне | Обновилось ядро — повторите шаги 5 и 5а. |
 | Не загружается после обновления | Загрузитесь с флешки-восстановления. Никогда не кладите в корень `/boot` лишних файлов `vmlinuz*`. |
 | Экран на миг гаснет при повороте | Известная проблема, см. README. |
 
@@ -192,13 +222,29 @@ Step-by-step installation of postmarketOS on the Digma CITI 1804 for a Windows u
 5. Connect to Wi-Fi from the top panel.
 6. Open the **Console** (or King's Cross) app. You'll type all further commands there. Commands with `sudo` ask for your password.
 
+### Step 4 (quick path). Everything with one command
+
+Steps 4, 5, 5a and 7 can be done by one script. It installs the packages, applies all hardware settings, builds the Bluetooth and deep-sleep modules for the installed kernel (for another kernel version it downloads the matching sources from kernel.org) and installs the Flathub apps:
+
+```sh
+passwd
+sudo apk add git
+git clone https://github.com/darkonline/cherry-trail-linux_digma-citi-1804.git ~/digma-citi1804-linux
+sh ~/digma-citi1804-linux/setup/restore.sh
+sudo reboot
+```
+
+Run it as the normal user, without `sudo`; it asks for your password when needed. `--no-apps` applies only the hardware setup; `--check` prints what would be done and changes nothing. Running it again is safe. Then go to step 6.
+
+The manual steps below show what the script does.
+
 ### Step 4. Update and apply the tablet configuration
 
 ```sh
 passwd                                  # set your own password instead of 147147
 sudo apk update && sudo apk upgrade     # system and kernel update; run it here, not over SSH
 sudo apk add git
-git clone https://github.com/darkonline/digma-citi1804-linux.git
+git clone https://github.com/darkonline/cherry-trail-linux_digma-citi-1804.git ~/digma-citi1804-linux
 cd digma-citi1804-linux
 ```
 
@@ -254,6 +300,20 @@ sudo reboot
 - The sources in `src/` come from kernel **6.18.63**. If `uname -r` shows another version, download that kernel version from <https://kernel.org> and replace the `src/` files with the ones from its `drivers/bluetooth/` folder.
 - ⚠️ **Rebuild the module after every kernel update.** Otherwise Bluetooth disappears; the rest of the system keeps working.
 
+### Step 5a. Deep sleep (battery life in suspend)
+
+Without this step the SoC never reaches S0i3 in suspend: the unused camera ISP stays powered and the battery drains about 3 % per hour. This module powers the ISP off:
+
+```sh
+cd ~/digma-citi1804-linux/power-isp
+sh build.sh
+sudo install -D -m644 intel_atomisp2_pm.ko /lib/modules/$(uname -r)/updates/intel_atomisp2_pm.ko
+sudo depmod $(uname -r)
+sudo reboot
+```
+
+Check after a suspend: `sudo cat /sys/kernel/debug/pmc_atom/sleep_state`; `S0I3 Residency` should grow. Like Bluetooth, rebuild it after every kernel update.
+
 ### Step 6. Install to internal storage (erases Windows)
 
 Make sure everything works from the USB drive. Then, still booted from it:
@@ -294,6 +354,6 @@ sudo sh ~/digma-citi1804-linux/install/install-emmc.sh
 | Touch doesn't work | Check that `/lib/firmware/silead/mssl1680.fw` exists and that `sudo mkinitfs` was run. |
 | No backlight control | `/etc/mkinitfs/modules/00-citi1804.modules` must exist, then run `sudo mkinitfs`. |
 | Speaker is quiet and "bubbly" | Check `/etc/kernel-cmdline.d/91-citi1804-audio.conf`, then run `sudo mkinitfs`. |
-| Bluetooth gone | The kernel was updated: repeat step 5. |
+| Bluetooth gone, or fast battery drain in suspend again | The kernel was updated: repeat steps 5 and 5a. |
 | Doesn't boot after an update | Boot from the rescue USB drive. Never leave extra `vmlinuz*` files in the root of `/boot`. |
 | Screen blanks briefly on rotation | Known issue, see README. |

@@ -35,9 +35,10 @@
 | Bluetooth | ✅ | пересобранный `hci_uart` (H5 + RTL), `bluetooth/` |
 | Автоповорот | ✅, но экран чернеет при каждом повороте | см. «Известные проблемы» |
 | Аппаратное видео (VA-API) | ✅ | драйвер i965, `config/home/...` |
-| Сон (s2idle) | ✅ | |
-| Камеры | ❌ | в ядре нет `VIDEO_ATOMISP`, `OV2680`, `GC0310` |
-| Звук по HDMI, микрофон гарнитуры | ❓ не проверено | |
+| Сон (s2idle) с глубоким S0i3 | ✅ | модуль `intel_atomisp2_pm`, `power-isp/` |
+| Камеры | ⛔ выключены | у автора камеры неисправны аппаратно (не работают и в заводской Windows); драйверы и инструкция включения — [camera/](camera/README.md). Включение камер отключает глубокий сон |
+| Звук по HDMI | ❓ не проверено | нет кабеля micro-HDMI |
+| Микрофон гарнитуры (3,5 мм) | ❓ не проверено | нужна гарнитура с микрофоном (штекер с 4 контактами, TRRS); наушники в разъёме работают |
 
 ### Установка настроек
 
@@ -77,6 +78,9 @@
 | `config/` | готовые файлы настроек |
 | `firmware/silead/` | прошивка тачскрина, извлечённая из Windows-драйвера Silead |
 | `bluetooth/` | сборка `hci_uart.ko` вне дерева ядра (H5 + Realtek) |
+| `power-isp/` | сборка `intel_atomisp2_pm.ko`: выключает ISP камер, чтобы работал глубокий сон |
+| `camera/` | драйверы камер (atomisp, ov2680, gc0310), включение и выключение; по умолчанию выключены |
+| `setup/` | `restore.sh` — вся настройка одной командой; `save-state.sh` — снимок настроек планшета |
 | `install/` | установка на eMMC |
 | `tools/` | замер батареи, масштаб, разгрузка фоновых служб, тесты звука |
 | `diagnostics/scripts/` | скрипты диагностики, в т.ч. разбор сырых данных тача |
@@ -95,7 +99,7 @@
 ### Лицензии
 
 - Скрипты и настройки — MIT (`LICENSE`).
-- `bluetooth/src/` — исходники ядра Linux, GPL-2.0.
+- `bluetooth/src/`, `power-isp/pm.c`, `camera/src/`, `camera/test/` — код ядра Linux и модули под GPL-2.0.
 - `firmware/silead/mssl1680.fw` — прошивка Silead из Windows-драйвера. Права принадлежат производителю, лицензия на распространение неизвестна.
 
 ---
@@ -131,9 +135,10 @@ Tested on postmarketOS v26.06, kernel `linux-lts` 6.18.63.
 | Bluetooth | ✅ | rebuilt `hci_uart` (H5 + RTL), `bluetooth/` |
 | Auto-rotation | ✅, but the screen blanks on each rotation | see Known issues |
 | Hardware video decoding (VA-API) | ✅ | i965 driver, `config/home/...` |
-| Suspend (s2idle) | ✅ | |
-| Cameras | ❌ | kernel lacks `VIDEO_ATOMISP`, `OV2680`, `GC0310` |
-| HDMI audio, headset mic | ❓ untested | |
+| Suspend (s2idle) with deep S0i3 | ✅ | `intel_atomisp2_pm` module, `power-isp/` |
+| Cameras | ⛔ disabled | hardware fault on the author's tablet (they don't work in the factory Windows either); drivers and how to enable them: [camera/](camera/README.md). Enabling the cameras disables deep sleep |
+| HDMI audio | ❓ untested | no micro-HDMI cable |
+| Headset microphone (3.5 mm) | ❓ untested | needs a headset with a microphone (4-contact TRRS plug); headphones in the jack work |
 
 ### Applying the configuration
 
@@ -173,6 +178,9 @@ Paths under `config/` mirror the system: `config/etc/...` → `/etc/...`, `confi
 | `config/` | ready-to-use configuration files |
 | `firmware/silead/` | touchscreen firmware extracted from the Silead Windows driver |
 | `bluetooth/` | out-of-tree build of `hci_uart.ko` (H5 + Realtek) |
+| `power-isp/` | build of `intel_atomisp2_pm.ko`: powers off the camera ISP so deep sleep works |
+| `camera/` | camera drivers (atomisp, ov2680, gc0310), enable and disable; disabled by default |
+| `setup/` | `restore.sh`: the whole setup in one command; `save-state.sh`: snapshot of the tablet settings |
 | `install/` | eMMC installation |
 | `tools/` | battery logger, scaling, background-service cleanup, audio tests |
 | `diagnostics/scripts/` | diagnostic scripts, including a raw touch data parser |
@@ -191,5 +199,5 @@ If you ever want Windows back:
 ### Licenses
 
 - Scripts and configuration: MIT (`LICENSE`).
-- `bluetooth/src/`: Linux kernel sources, GPL-2.0.
+- `bluetooth/src/`, `power-isp/pm.c`, `camera/src/`, `camera/test/`: Linux kernel code and modules, GPL-2.0.
 - `firmware/silead/mssl1680.fw`: Silead firmware from the Windows driver. Copyright belongs to the vendor; the redistribution license is unknown.
