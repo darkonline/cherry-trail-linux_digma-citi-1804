@@ -46,7 +46,7 @@
 
 ### Шаг 4 (быстрый путь). Всё одной командой
 
-Шаги 4, 5, 5а и 7 можно выполнить одним скриптом. Он ставит пакеты, применяет все настройки железа, собирает модули Bluetooth и глубокого сна под установленное ядро (при другой версии ядра сам скачивает нужные исходники с kernel.org) и ставит приложения Flathub:
+Шаги 4, 5 и 5а можно выполнить одним скриптом. Он обновляет систему, применяет все настройки железа и собирает модули Bluetooth и глубокого сна под установленное ядро (при другой версии ядра сам скачивает нужные исходники с kernel.org). После этого он **по очереди спрашивает** про дополнительные приложения (шаг 7): LibreOffice, утилиты, Pipeline, настройки Firefox, Telegram, Spotify, Steam. По умолчанию (Enter) — «нет»:
 
 ```sh
 passwd
@@ -56,7 +56,7 @@ sh ~/digma-citi1804-linux/setup/restore.sh
 sudo reboot
 ```
 
-Запускайте от обычного пользователя, без `sudo`: пароль скрипт спросит сам. `--no-apps` — только настройка железа, без приложений; `--check` — показать, что будет сделано, ничего не меняя. Повторный запуск безопасен. Дальше переходите к шагу 6.
+Запускайте от обычного пользователя, без `sudo`: пароль скрипт спросит сам. `--no-apps` — только железо, без вопросов про приложения; `--all-apps` — поставить все приложения без вопросов; `--check` — показать, что будет сделано, ничего не меняя. Повторный запуск безопасен. Дальше переходите к шагу 6.
 
 Если хотите делать всё вручную или понять, что делает скрипт, — шаги ниже.
 
@@ -224,7 +224,7 @@ Step-by-step installation of postmarketOS on the Digma CITI 1804 for a Windows u
 
 ### Step 4 (quick path). Everything with one command
 
-Steps 4, 5, 5a and 7 can be done by one script. It installs the packages, applies all hardware settings, builds the Bluetooth and deep-sleep modules for the installed kernel (for another kernel version it downloads the matching sources from kernel.org) and installs the Flathub apps:
+Steps 4, 5 and 5a can be done by one script. It updates the system, applies all hardware settings and builds the Bluetooth and deep-sleep modules for the installed kernel (for another kernel version it downloads the matching sources from kernel.org). Then it **asks one by one** about optional apps (step 7): LibreOffice, utilities, Pipeline, Firefox settings, Telegram, Spotify, Steam. The default (Enter) is "no":
 
 ```sh
 passwd
@@ -234,7 +234,7 @@ sh ~/digma-citi1804-linux/setup/restore.sh
 sudo reboot
 ```
 
-Run it as the normal user, without `sudo`; it asks for your password when needed. `--no-apps` applies only the hardware setup; `--check` prints what would be done and changes nothing. Running it again is safe. Then go to step 6.
+Run it as the normal user, without `sudo`; it asks for your password when needed. `--no-apps` does the hardware setup without asking about apps; `--all-apps` installs every app without asking; `--check` prints what would be done and changes nothing. Running it again is safe. Then go to step 6.
 
 The manual steps below show what the script does.
 
