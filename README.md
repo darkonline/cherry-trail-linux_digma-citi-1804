@@ -2,6 +2,8 @@
 
 [Русский](#русский) · [English](#english)
 
+**Пошаговая установка для пользователя Windows / Step-by-step installation for Windows users: [INSTALL.md](INSTALL.md)**
+
 ---
 
 ## Русский
@@ -31,12 +33,12 @@
 | Зарядка, батарея | ✅ | модуль `axp20x-i2c` в initramfs |
 | Звук: динамик, наушники, автопереключение | ✅ | quirk ядра + `jack-profile-switch` |
 | Встроенный микрофон | ✅ | |
-| Wi-Fi | ✅ (нестабилен при долгих загрузках) | |
+| Wi-Fi | ✅ | |
 | Bluetooth | ✅ | пересобранный `hci_uart` (H5 + RTL), `bluetooth/` |
-| Автоповорот | ✅, но экран чернеет при каждом повороте | см. «Известные проблемы» |
+| Автоповорот | ✅ | экран на миг чернеет при каждом повороте, см. «Известные проблемы» |
 | Аппаратное видео (VA-API) | ✅ | драйвер i965, `config/home/...` |
 | Сон (s2idle) с глубоким S0i3 | ✅ | модуль `intel_atomisp2_pm`, `power-isp/` |
-| Камеры | ⛔ выключены | у автора камеры неисправны аппаратно (не работают и в заводской Windows); драйверы и инструкция включения — [camera/](camera/README.md). Включение камер отключает глубокий сон |
+| Камеры | ⛔ выключены | у меня камеры неисправны аппаратно (не работают и в заводской Windows); драйверы и инструкция включения — [camera/](camera/README.md). Включение камер отключает глубокий сон |
 | Звук по HDMI | ❓ не проверено | нет кабеля micro-HDMI |
 | Микрофон гарнитуры (3,5 мм) | ❓ не проверено | нужна гарнитура с микрофоном (штекер с 4 контактами, TRRS); наушники в разъёме работают |
 
@@ -131,12 +133,12 @@ Tested on postmarketOS v26.06, kernel `linux-lts` 6.18.63.
 | Charging, battery | ✅ | `axp20x-i2c` in initramfs |
 | Audio: speaker, headphones, auto-switching | ✅ | kernel quirk + `jack-profile-switch` |
 | Internal microphone | ✅ | |
-| Wi-Fi | ✅ (unstable on long downloads) | |
+| Wi-Fi | ✅ | |
 | Bluetooth | ✅ | rebuilt `hci_uart` (H5 + RTL), `bluetooth/` |
-| Auto-rotation | ✅, but the screen blanks on each rotation | see Known issues |
+| Auto-rotation | ✅ | the screen blanks briefly on each rotation, see Known issues |
 | Hardware video decoding (VA-API) | ✅ | i965 driver, `config/home/...` |
 | Suspend (s2idle) with deep S0i3 | ✅ | `intel_atomisp2_pm` module, `power-isp/` |
-| Cameras | ⛔ disabled | hardware fault on the author's tablet (they don't work in the factory Windows either); drivers and how to enable them: [camera/](camera/README.md). Enabling the cameras disables deep sleep |
+| Cameras | ⛔ disabled | hardware fault on my tablet (they don't work in the factory Windows either); drivers and how to enable them: [camera/](camera/README.md). Enabling the cameras disables deep sleep |
 | HDMI audio | ❓ untested | no micro-HDMI cable |
 | Headset microphone (3.5 mm) | ❓ untested | needs a headset with a microphone (4-contact TRRS plug); headphones in the jack work |
 

@@ -8,7 +8,7 @@
 
 ### Состояние
 
-**По умолчанию камеры выключены.** У автора этого репозитория камеры планшета неисправны аппаратно. Проверено тремя способами:
+**По умолчанию камеры выключены.** У меня камеры планшета неисправны аппаратно. Проверено тремя способами:
 
 | Система | Результат |
 |---|---|
@@ -55,7 +55,7 @@ sudo reboot
 | `src/atomisp/` | драйвер ISP из `drivers/staging/media/atomisp` ядра 6.18.63; изменён только путь включаемых файлов в Makefile |
 | `src/ov2680.c`, `src/gc0310.c` | драйверы камер; добавлен тестовый параметр инверсии GPIO (`invert_gpio`, `invert_gpios`), по умолчанию 0 — без изменений |
 | `src/ipu-bridge.c` | связывает камеры из таблиц ACPI с драйвером ISP |
-| `test/eldo2_on.c` | тестовый модуль: принудительно включает выход ELDO2 (1,8 В) контроллера питания AXP288. На планшете автора ACPI его не включал; включение не помогло |
+| `test/eldo2_on.c` | тестовый модуль: принудительно включает выход ELDO2 (1,8 В) контроллера питания AXP288. На моём планшете ACPI его не включал; включение не помогло |
 
 
 ---
@@ -64,7 +64,7 @@ sudo reboot
 
 ### Status
 
-**The cameras are disabled by default.** On the author's tablet the cameras have a hardware fault, checked three ways:
+**The cameras are disabled by default.** On my tablet the cameras have a hardware fault, checked three ways:
 
 | System | Result |
 |---|---|
@@ -111,4 +111,4 @@ Check: `cat /sys/bus/pci/devices/0000:00:03.0/power_state` must print `D3cold`.
 | `src/atomisp/` | ISP driver from `drivers/staging/media/atomisp` of kernel 6.18.63; only the include path in the Makefile changed |
 | `src/ov2680.c`, `src/gc0310.c` | sensor drivers with an added GPIO inversion test parameter (`invert_gpio`, `invert_gpios`), default 0 = unchanged |
 | `src/ipu-bridge.c` | connects the cameras from the ACPI tables to the ISP driver |
-| `test/eldo2_on.c` | test module: forces on the ELDO2 output (1.8 V) of the AXP288 PMIC. ACPI did not switch it on on the author's tablet; switching it on did not help |
+| `test/eldo2_on.c` | test module: forces on the ELDO2 output (1.8 V) of the AXP288 PMIC. ACPI did not switch it on on my tablet; switching it on did not help |
