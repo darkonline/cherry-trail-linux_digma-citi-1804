@@ -82,7 +82,7 @@
 | `bluetooth/` | сборка `hci_uart.ko` вне дерева ядра (H5 + Realtek) |
 | `power-isp/` | сборка `intel_atomisp2_pm.ko`: выключает ISP камер, чтобы работал глубокий сон |
 | `camera/` | драйверы камер (atomisp, ov2680, gc0310), включение и выключение; по умолчанию выключены |
-| `setup/` | `restore.sh` — вся настройка одной командой; `save-state.sh` — снимок настроек планшета |
+| `setup/` | `restore.sh` — вся настройка железа одной командой, приложения — по запросу; `save-state.sh` — снимок настроек планшета |
 | `install/` | установка на eMMC |
 | `tools/` | замер батареи, масштаб, разгрузка фоновых служб, тесты звука |
 | `diagnostics/scripts/` | скрипты диагностики, в т.ч. разбор сырых данных тача |
@@ -182,7 +182,7 @@ Paths under `config/` mirror the system: `config/etc/...` → `/etc/...`, `confi
 | `bluetooth/` | out-of-tree build of `hci_uart.ko` (H5 + Realtek) |
 | `power-isp/` | build of `intel_atomisp2_pm.ko`: powers off the camera ISP so deep sleep works |
 | `camera/` | camera drivers (atomisp, ov2680, gc0310), enable and disable; disabled by default |
-| `setup/` | `restore.sh`: the whole setup in one command; `save-state.sh`: snapshot of the tablet settings |
+| `setup/` | `restore.sh`: the whole hardware setup in one command, apps on request; `save-state.sh`: snapshot of the tablet settings |
 | `install/` | eMMC installation |
 | `tools/` | battery logger, scaling, background-service cleanup, audio tests |
 | `diagnostics/scripts/` | diagnostic scripts, including a raw touch data parser |
