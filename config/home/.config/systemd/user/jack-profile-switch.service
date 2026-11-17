@@ -1,0 +1,11 @@
+[Unit]
+Description=Switch sound between speaker and headphone jack (Digma CITI 1804)
+After=graphical-session.target
+
+[Service]
+ExecStart=%h/.local/bin/jack-profile-switch.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
