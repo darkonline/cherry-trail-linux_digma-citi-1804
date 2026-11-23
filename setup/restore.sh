@@ -11,7 +11,7 @@
 #
 # Hardware part (always):
 #   1. apk update/upgrade (needed so the kernel headers match the kernel), build tools
-#   2. touchscreen firmware + kernel parameters (touch, audio quirk), initramfs modules, cursor, 150 % scale
+#   2. touchscreen firmware + kernel parameters (touch, audio quirk, SST audio driver), initramfs modules, cursor, 150 % scale
 #   3. removes phone apps (no modem in this tablet), disables ModemManager
 #   4. builds and installs hci_uart.ko (Bluetooth) and intel_atomisp2_pm.ko (deep sleep) for the installed kernel
 #   5. mkinitfs

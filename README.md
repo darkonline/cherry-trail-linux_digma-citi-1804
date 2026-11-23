@@ -57,6 +57,7 @@
    snd_soc_sst_bytcr_rt5651.quirk=25310226
    ```
    Это `0x1823412`: стандартные `0x23412` + `BYT_RT5651_MONO_SPEAKER` (бит 23) + `BYT_RT5651_JD_NOT_INV` (бит 24).
+   `92-citi1804-sst.conf`: `snd_intel_dspcfg.dsp_driver=2`, то есть старый драйвер звукового процессора Intel SST вместо SOF. С SOF звуковое устройство иногда зависает во время видео: динамик непрерывно пищит, а видео останавливается, потому что плеер ждёт звук. Кнопки громкости не помогают, помогает сброс устройства: `pactl suspend-sink @DEFAULT_SINK@ 1; sleep 1; pactl suspend-sink @DEFAULT_SINK@ 0`. С SST я этого пока не видел (проверено 23.11.2026).
 3. **Модули initramfs.** `config/etc/mkinitfs/modules/00-citi1804.modules` → `/etc/mkinitfs/modules/`.
 4. После шагов 1–3 выполните `sudo mkinitfs` и перезагрузитесь.
 5. **Курсор.** `WLR_NO_HARDWARE_CURSORS=1` в `/etc/environment`.
@@ -157,6 +158,7 @@ Paths under `config/` mirror the system: `config/etc/...` → `/etc/...`, `confi
    snd_soc_sst_bytcr_rt5651.quirk=25310226
    ```
    That is `0x1823412`: the default `0x23412` + `BYT_RT5651_MONO_SPEAKER` (bit 23) + `BYT_RT5651_JD_NOT_INV` (bit 24).
+   `92-citi1804-sst.conf`: `snd_intel_dspcfg.dsp_driver=2`, the legacy Intel SST DSP driver instead of SOF. With SOF the sound device sometimes hangs during video: the speaker beeps continuously, and the video stops because the player waits for the audio clock. Volume keys do not help, resetting the device does: `pactl suspend-sink @DEFAULT_SINK@ 1; sleep 1; pactl suspend-sink @DEFAULT_SINK@ 0`. With SST I have not seen this so far (checked 23.11.2026).
 3. **initramfs modules.** `config/etc/mkinitfs/modules/00-citi1804.modules` → `/etc/mkinitfs/modules/`.
 4. After steps 1–3, run `sudo mkinitfs` and reboot.
 5. **Cursor.** `WLR_NO_HARDWARE_CURSORS=1` in `/etc/environment`.
