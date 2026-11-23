@@ -46,7 +46,7 @@
 
 ### Шаг 4 (быстрый путь). Всё одной командой
 
-Шаги 4, 5 и 5а можно выполнить одним скриптом. Он обновляет систему, применяет все настройки железа и собирает модули Bluetooth и глубокого сна под установленное ядро (при другой версии ядра сам скачивает нужные исходники с kernel.org). После этого он **по очереди спрашивает** про дополнительные приложения (шаг 7): LibreOffice, утилиты, Pipeline, настройки Firefox, Telegram, Spotify, Steam. По умолчанию (Enter) — «нет»:
+Шаги 4, 5 и 5а можно выполнить одним скриптом. Он обновляет систему, применяет все настройки железа и собирает модули Bluetooth и глубокого сна под установленное ядро (при другой версии ядра сам скачивает нужные исходники с kernel.org). После этого он **по очереди спрашивает** про дополнительные приложения (шаг 7): LibreOffice, утилиты, Pipeline, настройки Firefox, Telegram, Spotify. По умолчанию (Enter) — «нет»:
 
 ```sh
 passwd
@@ -164,7 +164,7 @@ sudo sh ~/digma-citi1804-linux/install/install-emmc.sh
   install -D -m644 ~/digma-citi1804-linux/config/home/.local/share/applications/de.schmidhuberj.tubefeeder.desktop ~/.local/share/applications/de.schmidhuberj.tubefeeder.desktop
   ```
 - **Видео в Firefox**: скопируйте `config/home/firefox/user.js` в папку профиля `~/.mozilla/firefox/<что-то>.default-release/` и перезапустите Firefox.
-- **Telegram, Spotify, Steam** — ставятся через Flathub в «Центре приложений». Пакет Telegram из репозитория сломан, берите Flatpak. Spotify без звука исправляется так:
+- **Telegram, Spotify** — ставятся через Flathub в «Центре приложений». Пакет Telegram из репозитория сломан, берите Flatpak. Spotify без звука исправляется так:
   ```sh
   flatpak override --user --nofilesystem=xdg-run/pipewire-0 com.spotify.Client
   ```
@@ -224,7 +224,7 @@ Step-by-step installation of postmarketOS on the Digma CITI 1804 for a Windows u
 
 ### Step 4 (quick path). Everything with one command
 
-Steps 4, 5 and 5a can be done by one script. It updates the system, applies all hardware settings and builds the Bluetooth and deep-sleep modules for the installed kernel (for another kernel version it downloads the matching sources from kernel.org). Then it **asks one by one** about optional apps (step 7): LibreOffice, utilities, Pipeline, Firefox settings, Telegram, Spotify, Steam. The default (Enter) is "no":
+Steps 4, 5 and 5a can be done by one script. It updates the system, applies all hardware settings and builds the Bluetooth and deep-sleep modules for the installed kernel (for another kernel version it downloads the matching sources from kernel.org). Then it **asks one by one** about optional apps (step 7): LibreOffice, utilities, Pipeline, Firefox settings, Telegram, Spotify. The default (Enter) is "no":
 
 ```sh
 passwd
@@ -342,7 +342,7 @@ sudo sh ~/digma-citi1804-linux/install/install-emmc.sh
   install -D -m644 ~/digma-citi1804-linux/config/home/.local/share/applications/de.schmidhuberj.tubefeeder.desktop ~/.local/share/applications/de.schmidhuberj.tubefeeder.desktop
   ```
 - **Video in Firefox**: copy `config/home/firefox/user.js` into `~/.mozilla/firefox/<something>.default-release/` and restart Firefox.
-- **Telegram, Spotify, Steam**: install them from Flathub in the Software app. The Telegram package in the repository is broken, so use the Flatpak. If Spotify plays without sound:
+- **Telegram, Spotify**: install them from Flathub in the Software app. The Telegram package in the repository is broken, so use the Flatpak. If Spotify plays without sound:
   ```sh
   flatpak override --user --nofilesystem=xdg-run/pipewire-0 com.spotify.Client
   ```

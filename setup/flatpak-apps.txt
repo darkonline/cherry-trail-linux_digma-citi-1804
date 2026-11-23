@@ -1,3 +1,2 @@
 com.spotify.Client
-com.valvesoftware.Steam
 org.telegram.desktop

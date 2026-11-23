@@ -172,9 +172,6 @@ if [ "$APPS" != none ]; then
 		flathub com.spotify.Client
 		run flatpak override --user --nofilesystem=xdg-run/pipewire-0 com.spotify.Client
 	fi
-	if ask "Steam (Flathub, ~4 GB with runtimes; did NOT start successfully on my tablet)?"; then
-		flathub com.valvesoftware.Steam
-	fi
 fi
 
 say "Done. Reboot now: sudo reboot"
