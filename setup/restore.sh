@@ -123,7 +123,10 @@ run systemctl --user enable jack-profile-switch.service
 run gsettings set org.gnome.settings-daemon.plugins.power power-button-action 'nothing'
 run gsettings set org.gnome.desktop.a11y.applications screen-keyboard-enabled true
 run sh "$REPO/tools/bg-user.sh"
-run systemctl --user mask gnome-software.service || true
+# GNOME Software must NOT be masked: its menu icon starts it through this D-Bus service.
+# Keep it out of the search instead (a possible background trigger, not confirmed).
+run systemctl --user unmask gnome-software.service || true
+run gsettings set org.gnome.desktop.search-providers disabled "['org.gnome.Software.desktop']"
 
 say "Hardware setup done."
 
