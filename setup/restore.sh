@@ -11,8 +11,7 @@
 #
 # Hardware part (always):
 #   1. apk update/upgrade (needed so the kernel headers match the kernel), build tools
-#   2. touchscreen firmware + kernel parameters (touch, audio quirk, SST audio driver), initramfs modules, cursor, 150 % scale,
-#      sleep hook for faster wake-up
+#   2. touchscreen firmware + kernel parameters (touch, audio quirk, SST audio driver), initramfs modules, cursor, 150 % scale
 #   3. removes phone apps (no modem in this tablet), disables ModemManager
 #   4. builds and installs hci_uart.ko (Bluetooth) and intel_atomisp2_pm.ko (deep sleep) for the installed kernel
 #   5. mkinitfs
@@ -72,8 +71,9 @@ run sudo install -D -m644 "$REPO/firmware/silead/mssl1680.fw" /lib/firmware/sile
 run sudo install -D -m644 -t /etc/kernel-cmdline.d "$REPO"/config/etc/kernel-cmdline.d/*.conf
 run sudo install -D -m644 -t /etc/mkinitfs/modules "$REPO/config/etc/mkinitfs/modules/00-citi1804.modules"
 run sudo install -D -m644 "$REPO/config/etc/phosh/phoc.ini" /etc/phosh/phoc.ini
-# faster wake-up: unload Wi-Fi (rtl8723bs) before sleep, reload it in the background after
-run sudo install -D -m755 "$REPO/config/usr/lib/systemd/system-sleep/citi1804-wifi" /usr/lib/systemd/system-sleep/citi1804-wifi
+# The old sleep hook (unload Wi-Fi before sleep) left the rtl8723bs chip stuck after a later
+# warm reboot (Wi-Fi gone until a full power-off). Remove it if an earlier run installed it.
+run sudo rm -f /usr/lib/systemd/system-sleep/citi1804-wifi
 if ! grep -q '^WLR_NO_HARDWARE_CURSORS=1' /etc/environment 2>/dev/null; then
 	if [ "$CHECK" = 1 ]; then echo "[check] add WLR_NO_HARDWARE_CURSORS=1 to /etc/environment"
 	else echo 'WLR_NO_HARDWARE_CURSORS=1' | sudo tee -a /etc/environment >/dev/null; fi
