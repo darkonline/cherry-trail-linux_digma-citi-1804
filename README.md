@@ -1,5 +1,7 @@
 # Linux (postmarketOS) on Digma CITI 1804 (Cherry Trail)
 
+![Phosh на Digma CITI 1804 / Phosh on Digma CITI 1804](docs/screenshot.jpg)
+
 [Русский](#русский) · [English](#english)
 
 **Пошаговая установка для пользователя Windows / Step-by-step installation for Windows users: [INSTALL.md](INSTALL.md)**
@@ -88,7 +90,7 @@
 | `install/` | установка на eMMC |
 | `tools/` | замер батареи, масштаб, разгрузка фоновых служб, тесты звука |
 | `diagnostics/scripts/` | скрипты диагностики, в т.ч. разбор сырых данных тача |
-| `docs/` | журнал замера перенастроек экрана при повороте |
+| `docs/` | скриншот, журнал замера перенастроек экрана при повороте |
 
 ### Драйверы Windows
 
@@ -190,7 +192,7 @@ Paths under `config/` mirror the system: `config/etc/...` → `/etc/...`, `confi
 | `install/` | eMMC installation |
 | `tools/` | battery logger, scaling, background-service cleanup, audio tests |
 | `diagnostics/scripts/` | diagnostic scripts, including a raw touch data parser |
-| `docs/` | log of display modesets measured during rotation |
+| `docs/` | screenshot, log of display modesets measured during rotation |
 
 ### Windows drivers
 
