@@ -1,0 +1,28 @@
+#!/bin/sh
+# Digma CITI 1804: faster wake-up from sleep.
+# The Wi-Fi driver (rtl8723bs, staging) reloads its firmware on every resume and
+# blocks the wake-up for about 2 s. So: unload the driver before sleep and load it
+# again after wake-up in the background, so the screen does not wait for Wi-Fi.
+# systemd-sleep calls this file with $1 = pre | post and $2 = suspend | hibernate | ...
+# Install: sudo install -D -m755 citi1804-wifi /usr/lib/systemd/system-sleep/citi1804-wifi
+# Remove:  sudo rm /usr/lib/systemd/system-sleep/citi1804-wifi
+
+MOD=r8723bs
+FLAG=/run/citi1804-wifi-unloaded
+
+case "$1" in
+pre)
+	if grep -q "^$MOD " /proc/modules; then
+		modprobe -r "$MOD" && touch "$FLAG"
+	fi
+	;;
+post)
+	if [ -e "$FLAG" ]; then
+		rm -f "$FLAG"
+		if ! systemd-run --no-block --quiet --collect --unit=citi1804-wifi-reload modprobe "$MOD"; then
+			modprobe "$MOD" &
+		fi
+	fi
+	;;
+esac
+exit 0

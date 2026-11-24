@@ -38,6 +38,7 @@
 | Автоповорот | ✅ | экран на миг чернеет при каждом повороте, см. «Известные проблемы» |
 | Аппаратное видео (VA-API) | ✅ | драйвер i965, `config/home/...` |
 | Сон (s2idle) с глубоким S0i3 | ✅ | модуль `intel_atomisp2_pm`, `power-isp/` |
+| Быстрый выход из сна | ✅ | `config/usr/lib/systemd/system-sleep/citi1804-wifi`: драйвер Wi-Fi выгружается перед сном и загружается в фоне после него. Без этого он задерживал пробуждение примерно на 2 с (ядро 3,1 с → 1,4 с, экран примерно через 4–5 с после нажатия). Wi-Fi подключается примерно через 7 с после пробуждения |
 | Камеры | ⛔ выключены | у меня камеры неисправны аппаратно (не работают и в заводской Windows); драйверы и инструкция включения — [camera/](camera/README.md). Включение камер отключает глубокий сон |
 | Звук по HDMI | ❓ не проверено | нет кабеля micro-HDMI |
 | Микрофон гарнитуры (3,5 мм) | ❓ не проверено | нужна гарнитура с микрофоном (штекер с 4 контактами, TRRS); наушники в разъёме работают |
@@ -139,6 +140,7 @@ Tested on postmarketOS v26.06, kernel `linux-lts` 6.18.63.
 | Auto-rotation | ✅ | the screen blanks briefly on each rotation, see Known issues |
 | Hardware video decoding (VA-API) | ✅ | i965 driver, `config/home/...` |
 | Suspend (s2idle) with deep S0i3 | ✅ | `intel_atomisp2_pm` module, `power-isp/` |
+| Fast wake-up | ✅ | `config/usr/lib/systemd/system-sleep/citi1804-wifi`: the Wi-Fi driver is unloaded before sleep and reloaded in the background after it. Without this it delayed the wake-up by about 2 s (kernel 3.1 s → 1.4 s, screen about 4–5 s after the press). Wi-Fi reconnects about 7 s after wake-up |
 | Cameras | ⛔ disabled | hardware fault on my tablet (they don't work in the factory Windows either); drivers and how to enable them: [camera/](camera/README.md). Enabling the cameras disables deep sleep |
 | HDMI audio | ❓ untested | no micro-HDMI cable |
 | Headset microphone (3.5 mm) | ❓ untested | needs a headset with a microphone (4-contact TRRS plug); headphones in the jack work |
