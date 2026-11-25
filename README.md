@@ -37,7 +37,7 @@
 | Встроенный микрофон | ✅ | |
 | Wi-Fi | ✅ | |
 | Bluetooth | ✅ | пересобранный `hci_uart` (H5 + RTL), `bluetooth/` |
-| Автоповорот | ✅ | со штатным phoc экран чернеет на 1–1,5 с при каждом повороте; с пропатченным phoc (`phoc/`) черноты нет, на долю секунды видна перестройка панелей |
+| Автоповорот | ✅ | со штатным phoc экран чернеет на 1–1,5 с при каждом повороте; с пропатченным phoc (`phoc/`) поворот как в Windows: старый экран «отъезжает», пока перестраиваются панели, и плавно сменяется новым |
 | Аппаратное видео (VA-API) | ✅ | драйвер i965, `config/home/...` |
 | Сон (s2idle) с глубоким S0i3 | ✅ | модуль `intel_atomisp2_pm`, `power-isp/` |
 | Быстрый выход из сна | ⛔ отменено | я пробовал выгружать драйвер Wi-Fi перед сном (ядро просыпалось за 1,4 с вместо 3,1 с), но после этого при тёплой перезагрузке Wi-Fi-чип не определялся до полного выключения. Скрипт убран; выход из сна около 7–8 с |
@@ -144,7 +144,7 @@ Tested on postmarketOS v26.06, kernel `linux-lts` 6.18.63.
 | Internal microphone | ✅ | |
 | Wi-Fi | ✅ | |
 | Bluetooth | ✅ | rebuilt `hci_uart` (H5 + RTL), `bluetooth/` |
-| Auto-rotation | ✅ | with the stock phoc the screen goes black for 1–1.5 s on each rotation; with the patched phoc (`phoc/`) there is no black, the panels are seen rearranging for a moment |
+| Auto-rotation | ✅ | with the stock phoc the screen goes black for 1–1.5 s on each rotation; with the patched phoc (`phoc/`) rotation works like on Windows: the old screen recedes while the panels rearrange and fades into the new one |
 | Hardware video decoding (VA-API) | ✅ | i965 driver, `config/home/...` |
 | Suspend (s2idle) with deep S0i3 | ✅ | `intel_atomisp2_pm` module, `power-isp/` |
 | Fast wake-up | ⛔ dropped | I tried unloading the Wi-Fi driver before sleep (kernel resume 1.4 s instead of 3.1 s), but after that a warm reboot left the Wi-Fi chip undetected until a full power-off. The hook is removed; wake-up takes about 7–8 s |

@@ -1,0 +1,302 @@
+diff --git a/src/output-shield.c b/src/output-shield.c
+index a40dbe5..f7a2be9 100644
+--- a/src/output-shield.c
++++ b/src/output-shield.c
+@@ -21,6 +21,9 @@
+ 
+ #include <cairo.h>
+ #include <math.h>
++#include <wlr/render/wlr_texture.h>
++#include <wlr/util/transform.h>
++#include <wlr/types/wlr_buffer.h>
+ 
+ #define PHOC_ANIM_DURATION_SHIELD_MS 250 /* ms */
+ #define SPINNER_SIZE 32
+@@ -54,6 +57,15 @@ struct _PhocOutputShield {
+   float               logo_alpha[3];
+   guint               logo_frame_id;
+   gint64              logo_start_us;
++  /* rotation: the last frame before the rotation, shown upright until the panels are done */
++  struct wlr_texture *snapshot;
++  /* the buffer the snapshot texture shows: kept locked, otherwise the swapchain reuses it
++   * for new frames and the "old" frame turns into the new one */
++  struct wlr_buffer  *snapshot_buffer;
++  enum wl_output_transform snapshot_transform; /* output transform the frame was drawn with */
++  double              snapshot_progress;  /* 0..1 of the "recede" animation */
++  gint64              snapshot_start_us;
++  guint               snapshot_frame_id;
+   PhocOutput         *output;
+   PhocTimedAnimation *animation;
+   PhocPropertyEaser  *easer;
+@@ -323,6 +335,8 @@ stop_render (PhocOutputShield *self)
+     phoc_bling_unmap (PHOC_BLING (self->spinner));
+   g_clear_object (&self->image);
+   logo_clear (self, FALSE);
++  g_clear_pointer (&self->snapshot, wlr_texture_destroy);
++  g_clear_pointer (&self->snapshot_buffer, wlr_buffer_unlock);
+ 
+   if (renderer)
+     g_clear_signal_handler (&self->render_end_id, renderer);
+@@ -429,6 +443,76 @@ render_image (PhocOutputShield *self, PhocRenderContext *ctx)
+ }
+ 
+ 
++static gboolean
++snapshot_frame_cb (PhocAnimatable *animatable, guint64 last_frame, gpointer user_data)
++{
++  PhocOutputShield *self = PHOC_OUTPUT_SHIELD (animatable);
++  const char *ms_str = g_getenv ("PHOC_ROTATE_RECEDE_MS");
++  double ms = ms_str ? g_ascii_strtod (ms_str, NULL) : 250.0;
++
++  if (self->snapshot == NULL || self->output == NULL) {
++    self->snapshot_frame_id = 0;
++    return G_SOURCE_REMOVE;
++  }
++  self->snapshot_progress = ms > 0 ?
++    CLAMP ((g_get_monotonic_time () - self->snapshot_start_us) / 1000.0 / ms, 0.0, 1.0) : 1.0;
++  phoc_output_damage_whole (self->output);
++  if (self->snapshot_progress >= 1.0) {
++    /* done: no more redraws while the old frame just stays */
++    self->snapshot_frame_id = 0;
++    return G_SOURCE_REMOVE;
++  }
++  return G_SOURCE_CONTINUE;
++}
++
++
++/*
++ * Rotation snapshot: the old frame is in buffer coordinates of the old transform. Turn it
++ * back upright (inverse of the old transform), then apply the new output transform, and fit
++ * it into the output keeping its proportions (black bars from the shield around it).
++ */
++static void
++render_snapshot (PhocOutputShield *self, PhocRenderContext *ctx)
++{
++  struct wlr_output *wlr_output = ctx->output->wlr_output;
++  float alpha = phoc_color_rect_get_alpha (self->color_rect);
++  struct wlr_box box;
++  pixman_region32_t damage;
++  double p, s;
++  int fw, fh;
++
++  /*
++   * Show the old frame exactly as it was on the panel (old orientation): it is in buffer
++   * coordinates already, so no transform, only the "recede" around the centre:
++   * shrink to 85 % and dim to 60 % (ease-out).
++   */
++  p = 1.0 - pow (1.0 - self->snapshot_progress, 3);
++  s = 1.0 - 0.15 * p;
++  alpha *= 1.0 - 0.4 * p;
++  fw = (int) (wlr_output->width * s + 0.5);
++  fh = (int) (wlr_output->height * s + 0.5);
++  box = (struct wlr_box) {
++    .x = (wlr_output->width - fw) / 2,
++    .y = (wlr_output->height - fh) / 2,
++    .width = fw,
++    .height = fh,
++  };
++  if (!phoc_utils_is_damaged (&box, ctx->damage, NULL, &damage)) {
++    pixman_region32_fini (&damage);
++    return;
++  }
++  wlr_render_pass_add_texture (ctx->render_pass, &(struct wlr_render_texture_options) {
++      .alpha     = &alpha,
++      .texture   = self->snapshot,
++      .dst_box   = box,
++      .clip      = &damage,
++      .transform = WL_OUTPUT_TRANSFORM_NORMAL,
++      .filter_mode = WLR_SCALE_FILTER_BILINEAR,
++    });
++  pixman_region32_fini (&damage);
++}
++
++
+ static void
+ on_render (PhocOutputShield *self, PhocRenderContext *ctx)
+ {
+@@ -440,6 +524,8 @@ on_render (PhocOutputShield *self, PhocRenderContext *ctx)
+     render_image (self, ctx);
+   if (self->logo[0])
+     render_logo (self, ctx);
++  if (self->snapshot)
++    render_snapshot (self, ctx);
+   if (self->spinner)
+     phoc_bling_render (PHOC_BLING (self->spinner), ctx);
+ }
+@@ -521,6 +607,9 @@ phoc_output_shield_finalize (GObject *object)
+   g_clear_object (&self->animation);
+   g_clear_object (&self->spinner);
+   logo_clear (self, TRUE);
++  if (self->snapshot_frame_id && self->output)
++    phoc_animatable_remove_frame_callback (PHOC_ANIMATABLE (self), self->snapshot_frame_id);
++  self->snapshot_frame_id = 0;
+ 
+   G_OBJECT_CLASS (phoc_output_shield_parent_class)->finalize (object);
+ }
+@@ -623,6 +712,34 @@ phoc_output_shield_raise (PhocOutputShield *self, gboolean show_spinner)
+   start_render (self, show_spinner);
+ }
+ 
++/**
++ * phoc_output_shield_set_snapshot:
++ * @self: The shield
++ * @texture: (transfer full): the last frame before a rotation
++ * @transform: the output transform that frame was drawn with
++ *
++ * Show @texture (turned upright) on the shield until it is lowered.
++ */
++void
++phoc_output_shield_set_snapshot (PhocOutputShield        *self,
++                                 struct wlr_texture      *texture,
++                                 struct wlr_buffer       *buffer,
++                                 enum wl_output_transform transform)
++{
++  g_return_if_fail (PHOC_IS_OUTPUT_SHIELD (self));
++
++  g_clear_pointer (&self->snapshot, wlr_texture_destroy);
++  g_clear_pointer (&self->snapshot_buffer, wlr_buffer_unlock);
++  self->snapshot = texture;
++  self->snapshot_buffer = buffer ? wlr_buffer_lock (buffer) : NULL;
++  self->snapshot_transform = transform;
++  self->snapshot_progress = 0.0;
++  self->snapshot_start_us = g_get_monotonic_time ();
++  if (self->snapshot_frame_id == 0 && self->output)
++    self->snapshot_frame_id = phoc_animatable_add_frame_callback (PHOC_ANIMATABLE (self),
++                                                                  snapshot_frame_cb, NULL, NULL);
++}
++
+ /**
+  * phoc_output_shield_lower
+  * @self: The shield
+diff --git a/src/output-shield.h b/src/output-shield.h
+index 499da53..a3cb076 100644
+--- a/src/output-shield.h
++++ b/src/output-shield.h
+@@ -27,4 +27,10 @@ void                phoc_output_shield_set_easing                (PhocOutputShie
+ void                phoc_output_shield_set_duration              (PhocOutputShield *self,
+                                                                   guint             duration);
+ gboolean            phoc_output_shield_is_raised                 (PhocOutputShield *self);
++struct wlr_buffer;
++void                phoc_output_shield_set_snapshot (PhocOutputShield        *self,
++                                                     struct wlr_texture      *texture,
++                                                     struct wlr_buffer       *buffer,
++                                                     enum wl_output_transform transform);
++
+ G_END_DECLS
+diff --git a/src/output.c b/src/output.c
+index 8491ffd..bf83f05 100644
+--- a/src/output.c
++++ b/src/output.c
+@@ -35,6 +35,8 @@
+ #include <wlr/types/wlr_xdg_shell.h>
+ #include <wlr/util/region.h>
+ #include <wlr/util/transform.h>
++#include <wlr/render/wlr_texture.h>
++#include <wlr/types/wlr_buffer.h>
+ 
+ enum {
+   PROP_0,
+@@ -75,6 +77,11 @@ typedef struct _PhocOutputPrivate {
+   PhocLayoutTransaction *transaction;
+   gboolean modeset_shield;
+ 
++  /* rotation snapshot ($PHOC_ROTATE_SNAPSHOT=1): the last frame shown and its transform */
++  struct wlr_buffer       *last_buffer;
++  enum wl_output_transform last_buffer_transform;
++  guint                    rotate_timeout_id;
++
+   GSList  *blings;          /* (element-type: PhocBling) */
+   GSList  *debug_damage;    /* (element-type: PhocDebugDamageRegion) */
+ 
+@@ -131,7 +138,27 @@ on_transaction_active_changed (PhocOutput            *self,
+     return;
+ 
+   priv->modeset_shield = FALSE;
+-  phoc_output_lower_shield (self, PHOC_EASING_EASE_OUT_QUINT, 150);
++  g_clear_handle_id (&priv->rotate_timeout_id, g_source_remove);
++  phoc_output_lower_shield (self, PHOC_EASING_EASE_OUT_QUINT,
++                            g_getenv ("PHOC_ROTATE_FADE_MS") ?
++                            (guint) g_ascii_strtoull (g_getenv ("PHOC_ROTATE_FADE_MS"), NULL, 10) : 150);
++}
++
++
++static gboolean
++on_rotate_timeout (gpointer data)
++{
++  PhocOutput *self = PHOC_OUTPUT (data);
++  PhocOutputPrivate *priv = phoc_output_get_instance_private (self);
++  const char *ms = g_getenv ("PHOC_ROTATE_FADE_MS");
++
++  priv->rotate_timeout_id = 0;
++  if (priv->modeset_shield) {
++    priv->modeset_shield = FALSE;
++    phoc_output_lower_shield (self, PHOC_EASING_EASE_OUT_QUINT,
++                              ms ? (guint) g_ascii_strtoull (ms, NULL, 10) : 250);
++  }
++  return G_SOURCE_REMOVE;
+ }
+ 
+ 
+@@ -727,9 +754,31 @@ phoc_output_handle_commit (struct wl_listener *listener, void *data)
+      * dim screen until this finished to avoid flickering.
+      * PHOC_NO_TRANSFORM_SHIELD=1: not for a pure rotation (transform/scale change
+      * without a new mode); on slow devices the black screen lasts up to 3 s. */
+-    if (configure_sent &&
+-        !((event->state->committed & WLR_OUTPUT_STATE_MODE) == 0 &&
+-          g_strcmp0 (g_getenv ("PHOC_NO_TRANSFORM_SHIELD"), "1") == 0) &&
++    gboolean pure_rotation = (event->state->committed & WLR_OUTPUT_STATE_MODE) == 0 &&
++                             (event->state->committed & WLR_OUTPUT_STATE_TRANSFORM);
++
++    if (configure_sent && pure_rotation && priv->last_buffer &&
++        g_strcmp0 (g_getenv ("PHOC_ROTATE_SNAPSHOT"), "1") == 0 &&
++        !priv->modeset_shield && !phoc_output_shield_is_raised (priv->shield)) {
++      /* PHOC_ROTATE_SNAPSHOT=1: show the last frame (turned upright for the new orientation)
++       * while the panels rearrange, then crossfade to the new layout */
++      PhocRenderer *renderer = phoc_server_get_renderer (phoc_server_get_default ());
++      struct wlr_texture *texture =
++        wlr_texture_from_buffer (phoc_renderer_get_wlr_renderer (renderer), priv->last_buffer);
++
++      if (texture) {
++        const char *max_ms = g_getenv ("PHOC_ROTATE_SNAPSHOT_MAX_MS");
++
++        phoc_output_raise_shield (self, FALSE);
++        phoc_output_shield_set_snapshot (priv->shield, texture, priv->last_buffer,
++                                         priv->last_buffer_transform);
++        priv->modeset_shield = TRUE;
++        g_clear_handle_id (&priv->rotate_timeout_id, g_source_remove);
++        priv->rotate_timeout_id = g_timeout_add (max_ms ? (guint) g_ascii_strtoull (max_ms, NULL, 10) : 1000,
++                                                 on_rotate_timeout, self);
++      }
++    } else if (configure_sent &&
++        !(pure_rotation && g_strcmp0 (g_getenv ("PHOC_NO_TRANSFORM_SHIELD"), "1") == 0) &&
+         !priv->modeset_shield &&
+         !phoc_output_shield_is_raised (priv->shield)) {
+       phoc_output_raise_shield (self, FALSE);
+@@ -745,6 +794,17 @@ phoc_output_handle_commit (struct wl_listener *listener, void *data)
+     update_output_manager_config (desktop);
+   }
+ 
++  /* remember the frame now on screen (for the rotation snapshot); only when enabled */
++  if ((event->state->committed & WLR_OUTPUT_STATE_BUFFER) && event->state->buffer &&
++      g_strcmp0 (g_getenv ("PHOC_ROTATE_SNAPSHOT"), "1") == 0) {
++    struct wlr_buffer *old = priv->last_buffer;
++
++    priv->last_buffer = wlr_buffer_lock (event->state->buffer);
++    priv->last_buffer_transform = self->wlr_output->transform;
++    if (old)
++      wlr_buffer_unlock (old);
++  }
++
+   if (event->state->committed & WLR_OUTPUT_STATE_ENABLED && self->wlr_output->enabled) {
+     priv->gamma_lut_changed = TRUE;
+     wlr_output_schedule_frame (self->wlr_output);
+@@ -1185,6 +1245,9 @@ phoc_output_finalize (GObject *object)
+ 
+   wlr_damage_ring_finish (&priv->damage_ring);
+ 
++  g_clear_handle_id (&priv->rotate_timeout_id, g_source_remove);
++  g_clear_pointer (&priv->last_buffer, wlr_buffer_unlock);
++
+   /* Remove all frame callbacks, this will also free associated user data */
+   g_clear_slist (&priv->frame_callbacks,
+                  (GDestroyNotify)phoc_output_frame_callback_info_free);

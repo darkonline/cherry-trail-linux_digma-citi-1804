@@ -61,11 +61,11 @@ EOF
 chmod 755 "$D/phoc"
 
 # settings file; rewritten only if it is missing or from an older version of this script
-if ! grep -q '^# citi1804 phoc.env v2' /etc/citi1804/phoc.env 2>/dev/null; then
+if ! grep -q '^# citi1804 phoc.env v5' /etc/citi1804/phoc.env 2>/dev/null; then
 	[ -e /etc/citi1804/phoc.env ] && cp /etc/citi1804/phoc.env /etc/citi1804/phoc.env.old
 	install -D -m644 /dev/null /etc/citi1804/phoc.env
 	cat > /etc/citi1804/phoc.env <<'EOF'
-# citi1804 phoc.env v2
+# citi1804 phoc.env v5
 # Settings of the patched phoc. Edit with sudo; applied at the next login or reboot.
 #
 # Startup screen (while the session starts): the postmarketOS boot logo, spinning like the boot
@@ -78,8 +78,16 @@ PHOC_SHIELD_IMAGE=
 PHOC_SHIELD_DIM=0.4
 # Fade-out of the startup screen when the desktop or lock screen is ready, in ms (0 = cut)
 PHOC_SHIELD_FADE_MS=400
-# 1 = no black screen while the panels are rearranged after a screen rotation
-#     (for a moment they are seen in the old layout instead); 0 = black, as in stock phoc
+# Screen rotation. 1 = the last frame (turned upright for the new orientation) recedes (shrinks
+# to 85 % and dims), stays while the panels rearrange, then the new layout fades in
+PHOC_ROTATE_SNAPSHOT=1
+# Recede time, fade-in time of the new layout, and the longest the old frame is kept if the
+# panels are slow, all in ms
+PHOC_ROTATE_RECEDE_MS=250
+PHOC_ROTATE_FADE_MS=400
+PHOC_ROTATE_SNAPSHOT_MAX_MS=2500
+# Without the snapshot: 1 = no black screen while the panels rearrange (they are seen
+# rearranging for a moment); 0 = black, as in stock phoc
 PHOC_NO_TRANSFORM_SHIELD=1
 EOF
 fi

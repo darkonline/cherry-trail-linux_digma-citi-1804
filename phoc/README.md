@@ -16,8 +16,9 @@
 | `no-transform-shield` | `PHOC_NO_TRANSFORM_SHIELD=1`: при простом повороте phoc не закрывает экран чёрным, пока перестраиваются панели (на этом планшете до 3 с). Вместо черноты на долю секунды видна перестройка |
 | `shield-image` | `PHOC_SHIELD_IMAGE`, `PHOC_SHIELD_DIM`: картинка (например, обои) вместо чёрного фона на экране запуска сеанса |
 | `shield-logo` | `PHOC_SHIELD_LOGO_DIR`: вместо кружка на экране запуска — логотип postmarketOS из темы Plymouth `pmos-spin`, того же размера, на том же месте и с той же анимацией. `PHOC_SHIELD_FADE_MS`: плавное исчезновение экрана запуска |
+| `rotate-snapshot` | `PHOC_ROTATE_SNAPSHOT=1`: поворот как в Windows. Последний кадр в старой ориентации «отъезжает» (уменьшается до 85 % и тускнеет, `PHOC_ROTATE_RECEDE_MS`), держится, пока перестраиваются панели (не дольше `PHOC_ROTATE_SNAPSHOT_MAX_MS`), и плавно сменяется новым экраном (`PHOC_ROTATE_FADE_MS`) |
 
-Проверено мной на планшете 25.11.2026 (postmarketOS v26.06, phoc 0.55.1): поворот без чёрной вспышки, логотип вместо кружка, загрузка без падений. В первой версии `shield-logo` phoc падал в конце угасания (снятие покадровой анимации изнутри обработки кадра); исправлено.
+Патчи накладываются по номеру (01–05). Проверено мной на планшете 25.11.2026 (postmarketOS v26.06, phoc 0.55.1): поворот со снимком, логотип вместо кружка, загрузка без падений. Найдено и исправлено по ходу: в первой версии `shield-logo` phoc падал в конце угасания (снятие покадровой анимации изнутри обработки кадра); в первой версии `rotate-snapshot` буфер снимка переиспользовался для новых кадров, и «старый» кадр показывал новую ориентацию; постоянная перерисовка во время ожидания перестройки тормозила планшет — теперь кадры рисуются только во время анимаций.
 
 ### Установка
 
@@ -52,8 +53,9 @@ Patches for phoc 0.55.1 (the Phosh compositor) for the Digma CITI 1804 and simil
 | `no-transform-shield` | `PHOC_NO_TRANSFORM_SHIELD=1`: on a plain rotation phoc does not cover the screen with black while the panels rearrange (up to 3 s on this tablet). Instead the rearranging is visible for a moment |
 | `shield-image` | `PHOC_SHIELD_IMAGE`, `PHOC_SHIELD_DIM`: a picture (e.g. the wallpaper) instead of black on the session start screen |
 | `shield-logo` | `PHOC_SHIELD_LOGO_DIR`: instead of the spinner, the postmarketOS logo from the Plymouth theme `pmos-spin`, same size, place and animation. `PHOC_SHIELD_FADE_MS`: fade-out of the start screen |
+| `rotate-snapshot` | `PHOC_ROTATE_SNAPSHOT=1`: rotation like on Windows. The last frame, in the old orientation, recedes (shrinks to 85 % and dims, `PHOC_ROTATE_RECEDE_MS`), stays while the panels rearrange (at most `PHOC_ROTATE_SNAPSHOT_MAX_MS`) and fades into the new screen (`PHOC_ROTATE_FADE_MS`) |
 
-Tested by me on the tablet on 2026-11-25 (postmarketOS v26.06, phoc 0.55.1): rotation without a black flash, logo instead of the spinner, boot without crashes. The first version of `shield-logo` crashed phoc at the end of the fade-out (a frame callback was removed from inside the frame callback loop); fixed.
+The patches apply in number order (01–05). Tested by me on the tablet on 2026-11-25 (postmarketOS v26.06, phoc 0.55.1): rotation with the snapshot, logo instead of the spinner, boot without crashes. Found and fixed on the way: the first `shield-logo` crashed phoc at the end of the fade-out (a frame callback was removed from inside the frame callback loop); in the first `rotate-snapshot` the snapshot buffer was reused for new frames, so the "old" frame showed the new orientation; redrawing all the time while waiting for the panels slowed the tablet down, now frames are drawn only during the animations.
 
 ### Installation
 
