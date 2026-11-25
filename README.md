@@ -30,17 +30,18 @@
 | Что | Состояние | Как |
 |---|---|---|
 | Загрузка с eMMC и с флешки | ✅ | `install/install-emmc.sh` (сам находит eMMC) |
-| Тачскрин | ✅ | параметры ядра + прошивка `firmware/silead/mssl1680.fw` |
+| Тачскрин | ✅ | параметры ядра + прошивка `firmware/silead/mssl1680.fw`; фильтр дрожания — правило udev `90-citi1804-touch-fuzz.rules` (без него точка под неподвижным пальцем прыгала на 8–14 единиц и долгое нажатие срывалось) |
 | Яркость | ✅ | модуль `pwm-lpss-platform` в initramfs |
 | Зарядка, батарея | ✅ | модуль `axp20x-i2c` в initramfs |
 | Звук: динамик, наушники, автопереключение | ✅ | quirk ядра + `jack-profile-switch` |
 | Встроенный микрофон | ✅ | |
 | Wi-Fi | ✅ | |
 | Bluetooth | ✅ | пересобранный `hci_uart` (H5 + RTL), `bluetooth/` |
-| Автоповорот | ✅ | экран на миг чернеет при каждом повороте, см. «Известные проблемы» |
+| Автоповорот | ✅ | со штатным phoc экран чернеет на 1–1,5 с при каждом повороте; с пропатченным phoc (`phoc/`) черноты нет, на долю секунды видна перестройка панелей |
 | Аппаратное видео (VA-API) | ✅ | драйвер i965, `config/home/...` |
 | Сон (s2idle) с глубоким S0i3 | ✅ | модуль `intel_atomisp2_pm`, `power-isp/` |
 | Быстрый выход из сна | ⛔ отменено | я пробовал выгружать драйвер Wi-Fi перед сном (ядро просыпалось за 1,4 с вместо 3,1 с), но после этого при тёплой перезагрузке Wi-Fi-чип не определялся до полного выключения. Скрипт убран; выход из сна около 7–8 с |
+| Загрузка и вход | ✅ | `tools/boot-polish.sh` (по желанию): без текста и меню загрузки, логотип без надписей, сразу сеанс Phosh, который стартует заблокированным, как телефон; после разблокировки сразу рабочий стол. С `phoc/` логотип вращается до самого экрана блокировки. Откат: `--undo` |
 | Камеры | ⛔ выключены | у меня камеры неисправны аппаратно (не работают и в заводской Windows); драйверы и инструкция включения — [camera/](camera/README.md). Включение камер отключает глубокий сон |
 | Звук по HDMI | ❓ не проверено | нет кабеля micro-HDMI |
 | Микрофон гарнитуры (3,5 мм) | ❓ не проверено | нужна гарнитура с микрофоном (штекер с 4 контактами, TRRS); наушники в разъёме работают |
@@ -71,7 +72,9 @@
 
 ### Известные проблемы
 
-- **Чёрная вспышка при повороте экрана.** Phosh при повороте отправляет всю конфигурацию экрана, а phoc при этом вызывает `wlr_output_state_set_enabled` и `wlr_output_state_set_mode`. В wlroots 0.20 оба вызова выставляют `allow_reconfiguration`, и выполняется полная перенастройка дисплея (DRM modeset). Сам поворот её не требует. Исправление — патч phoc; пока не сделано и не проверено.
+- **Чёрная вспышка при повороте экрана (штатный phoc).** Две причины. 1) Phosh при повороте отправляет всю конфигурацию экрана, а phoc вызывает `wlr_output_state_set_enabled` и `wlr_output_state_set_mode`; в wlroots 0.20 оба выставляют `allow_reconfiguration`, и выполняется полная перенастройка дисплея (DRM modeset), хотя повороту она не нужна. 2) phoc закрывает экран чёрным, пока панели оболочки перестраиваются (до 3 с). Обе исправлены патчами в `phoc/`.
+- **Связка ключей при автовходе.** При входе без пароля (`boot-polish.sh`) связку ключей открывает экран блокировки Phosh при разблокировке. Если онлайн-аккаунты (Google, Microsoft) просят её раньше, появляется окно пароля. Чтобы окна не было, связке «Вход» можно задать пустой пароль в «Пароли и ключи» (seahorse); тогда токены хранятся на диске без шифрования.
+- **Чернота от логотипа вендора до логотипа ОС** (~10 с): чтение ядра и initramfs через 32-битный UEFI и старт initramfs. Не исправлено.
 - **Spotify (Flatpak) играет без звука**: `flatpak override --user --nofilesystem=xdg-run/pipewire-0 com.spotify.Client`. Здесь звуком владеет PulseAudio, а у PipeWire нет выходов.
 - **Pipeline (YouTube) падает в libEGL**: запуск с `GSK_RENDERER=gl`, см. `.desktop` в `config/home/.local/share/applications/`.
 - **Двойное нажатие кнопки питания после сна**: Phosh получает нажатие, разбудившее планшет, и сразу гасит экран.
@@ -88,7 +91,8 @@
 | `camera/` | драйверы камер (atomisp, ov2680, gc0310), включение и выключение; по умолчанию выключены |
 | `setup/` | `restore.sh` — вся настройка железа одной командой, приложения — по запросу; `save-state.sh` — снимок настроек планшета |
 | `install/` | установка на eMMC |
-| `tools/` | замер батареи, масштаб, разгрузка фоновых служб, тесты звука |
+| `tools/` | замер батареи, масштаб, разгрузка фоновых служб, тесты звука, `boot-polish.sh` (загрузка и вход) |
+| `phoc/` | патчи phoc 0.55.1, сборка и установка без изменения системных файлов (см. `phoc/README.md`) |
 | `diagnostics/scripts/` | скрипты диагностики, в т.ч. разбор сырых данных тача |
 | `docs/` | скриншот, журнал замера перенастроек экрана при повороте |
 
@@ -106,6 +110,7 @@
 
 - Скрипты и настройки — MIT (`LICENSE`).
 - `bluetooth/src/`, `power-isp/pm.c`, `camera/src/`, `camera/test/` — код ядра Linux и модули под GPL-2.0.
+- `phoc/patches/` — изменения к phoc, GPL-3.0-only, как и сам phoc.
 - `firmware/silead/mssl1680.fw` — прошивка Silead из Windows-драйвера. Права принадлежат производителю, лицензия на распространение неизвестна.
 
 ---
@@ -132,17 +137,18 @@ Tested on postmarketOS v26.06, kernel `linux-lts` 6.18.63.
 | Feature | Status | How |
 |---|---|---|
 | Boot from eMMC and USB | ✅ | `install/install-emmc.sh` |
-| Touchscreen | ✅ | kernel parameters + `firmware/silead/mssl1680.fw` |
+| Touchscreen | ✅ | kernel parameters + `firmware/silead/mssl1680.fw`; jitter filter: udev rule `90-citi1804-touch-fuzz.rules` (without it the point under a still finger jumped by 8–14 units and long presses got cancelled) |
 | Backlight | ✅ | `pwm-lpss-platform` in initramfs |
 | Charging, battery | ✅ | `axp20x-i2c` in initramfs |
 | Audio: speaker, headphones, auto-switching | ✅ | kernel quirk + `jack-profile-switch` |
 | Internal microphone | ✅ | |
 | Wi-Fi | ✅ | |
 | Bluetooth | ✅ | rebuilt `hci_uart` (H5 + RTL), `bluetooth/` |
-| Auto-rotation | ✅ | the screen blanks briefly on each rotation, see Known issues |
+| Auto-rotation | ✅ | with the stock phoc the screen goes black for 1–1.5 s on each rotation; with the patched phoc (`phoc/`) there is no black, the panels are seen rearranging for a moment |
 | Hardware video decoding (VA-API) | ✅ | i965 driver, `config/home/...` |
 | Suspend (s2idle) with deep S0i3 | ✅ | `intel_atomisp2_pm` module, `power-isp/` |
 | Fast wake-up | ⛔ dropped | I tried unloading the Wi-Fi driver before sleep (kernel resume 1.4 s instead of 3.1 s), but after that a warm reboot left the Wi-Fi chip undetected until a full power-off. The hook is removed; wake-up takes about 7–8 s |
+| Boot and login | ✅ | `tools/boot-polish.sh` (optional): no text and no boot menu, boot logo without text, straight into a Phosh session that starts locked, like a phone; after unlocking the desktop is already there. With `phoc/` the logo keeps spinning until the lock screen. Undo: `--undo` |
 | Cameras | ⛔ disabled | hardware fault on my tablet (they don't work in the factory Windows either); drivers and how to enable them: [camera/](camera/README.md). Enabling the cameras disables deep sleep |
 | HDMI audio | ❓ untested | no micro-HDMI cable |
 | Headset microphone (3.5 mm) | ❓ untested | needs a headset with a microphone (4-contact TRRS plug); headphones in the jack work |
@@ -173,7 +179,9 @@ Paths under `config/` mirror the system: `config/etc/...` → `/etc/...`, `confi
 
 ### Known issues
 
-- **Black flash on screen rotation.** On rotation, Phosh sends the whole output configuration, and phoc calls `wlr_output_state_set_enabled` and `wlr_output_state_set_mode`. In wlroots 0.20 both set `allow_reconfiguration`, which forces a full DRM modeset. The rotation itself doesn't need one. Fix: patch phoc. Not done or tested yet.
+- **Black flash on screen rotation (stock phoc).** Two causes. 1) On rotation Phosh sends the whole output configuration and phoc calls `wlr_output_state_set_enabled` and `wlr_output_state_set_mode`; in wlroots 0.20 both set `allow_reconfiguration`, forcing a full DRM modeset the rotation does not need. 2) phoc covers the screen with black while the shell panels rearrange (up to 3 s). Both are fixed by the patches in `phoc/`.
+- **Keyring with automatic login.** With the passwordless login of `boot-polish.sh` the keyring is unlocked by the Phosh lock screen. If online accounts (Google, Microsoft) ask for it earlier, a password dialog appears. To avoid it, the "Login" keyring can get an empty password in Passwords and Keys (seahorse); the tokens are then stored on disk unencrypted.
+- **Black screen between the vendor logo and the OS logo** (~10 s): loading the kernel and initramfs through the 32-bit UEFI and the initramfs start. Not fixed.
 - **Spotify (Flatpak) is silent**: `flatpak override --user --nofilesystem=xdg-run/pipewire-0 com.spotify.Client`. PulseAudio owns the audio devices here, and PipeWire has no sinks.
 - **Pipeline (YouTube) crashes in libEGL**: launch it with `GSK_RENDERER=gl`, see the `.desktop` file in `config/home/.local/share/applications/`.
 - **Power button needs a double press after suspend**: Phosh receives the wake-up press and blanks the screen again.
@@ -190,7 +198,8 @@ Paths under `config/` mirror the system: `config/etc/...` → `/etc/...`, `confi
 | `camera/` | camera drivers (atomisp, ov2680, gc0310), enable and disable; disabled by default |
 | `setup/` | `restore.sh`: the whole hardware setup in one command, apps on request; `save-state.sh`: snapshot of the tablet settings |
 | `install/` | eMMC installation |
-| `tools/` | battery logger, scaling, background-service cleanup, audio tests |
+| `tools/` | battery logger, scaling, background-service cleanup, audio tests, `boot-polish.sh` (boot and login) |
+| `phoc/` | phoc 0.55.1 patches, build and install without changing system files (see `phoc/README.md`) |
 | `diagnostics/scripts/` | diagnostic scripts, including a raw touch data parser |
 | `docs/` | screenshot, log of display modesets measured during rotation |
 
@@ -208,4 +217,5 @@ If you ever want Windows back:
 
 - Scripts and configuration: MIT (`LICENSE`).
 - `bluetooth/src/`, `power-isp/pm.c`, `camera/src/`, `camera/test/`: Linux kernel code and modules, GPL-2.0.
+- `phoc/patches/`: changes to phoc, GPL-3.0-only like phoc itself.
 - `firmware/silead/mssl1680.fw`: Silead firmware from the Windows driver. Copyright belongs to the vendor; the redistribution license is unknown.

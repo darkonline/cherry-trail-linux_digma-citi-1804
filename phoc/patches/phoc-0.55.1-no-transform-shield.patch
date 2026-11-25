@@ -1,0 +1,18 @@
+diff --git a/src/output.c b/src/output.c
+index ac3117f..8491ffd 100644
+--- a/src/output.c
++++ b/src/output.c
+@@ -724,8 +724,12 @@ phoc_output_handle_commit (struct wl_listener *listener, void *data)
+ 
+     configure_sent = phoc_layer_shell_arrange (self);
+     /* The arranging of the layer surfaces will kick of a transaction,
+-     * dim screen until this finished to avoid flickering */
++     * dim screen until this finished to avoid flickering.
++     * PHOC_NO_TRANSFORM_SHIELD=1: not for a pure rotation (transform/scale change
++     * without a new mode); on slow devices the black screen lasts up to 3 s. */
+     if (configure_sent &&
++        !((event->state->committed & WLR_OUTPUT_STATE_MODE) == 0 &&
++          g_strcmp0 (g_getenv ("PHOC_NO_TRANSFORM_SHIELD"), "1") == 0) &&
+         !priv->modeset_shield &&
+         !phoc_output_shield_is_raised (priv->shield)) {
+       phoc_output_raise_shield (self, FALSE);

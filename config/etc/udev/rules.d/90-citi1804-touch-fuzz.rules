@@ -1,0 +1,5 @@
+# Digma CITI 1804: the silead touchscreen jumps by 8-14 units with a finger held still,
+# so long presses get cancelled. Set the kernel jitter filter (fuzz) on the touch axes.
+# (touchscreen-fuzz-x/-y in i2c_touchscreen_props did not take effect on 6.18.63.)
+# Values are for the axes as evtest shows them: ABS_MT_POSITION_X 32, ABS_MT_POSITION_Y 4.
+ACTION=="add", SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="silead_ts", RUN+="/usr/bin/python3 /usr/local/lib/citi1804/touch-fuzz.py 32 4"

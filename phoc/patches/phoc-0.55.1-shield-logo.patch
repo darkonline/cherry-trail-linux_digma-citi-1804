@@ -1,0 +1,256 @@
+diff --git a/src/output-shield.c b/src/output-shield.c
+index 491a8d4..a40dbe5 100644
+--- a/src/output-shield.c
++++ b/src/output-shield.c
+@@ -20,6 +20,7 @@
+ #include "render-private.h"
+ 
+ #include <cairo.h>
++#include <math.h>
+ 
+ #define PHOC_ANIM_DURATION_SHIELD_MS 250 /* ms */
+ #define SPINNER_SIZE 32
+@@ -47,6 +48,12 @@ struct _PhocOutputShield {
+   PhocCairoTexture   *image;
+   int                 image_width;
+   int                 image_height;
++  /* optional animated boot logo instead of the spinner, see PHOC_SHIELD_LOGO_DIR */
++  PhocCairoTexture   *logo[3];
++  struct wlr_box      logo_box;    /* layout coordinates */
++  float               logo_alpha[3];
++  guint               logo_frame_id;
++  gint64              logo_start_us;
+   PhocOutput         *output;
+   PhocTimedAnimation *animation;
+   PhocPropertyEaser  *easer;
+@@ -60,6 +67,175 @@ G_DEFINE_TYPE_WITH_CODE (PhocOutputShield, phoc_output_shield, G_TYPE_OBJECT,
+                          G_IMPLEMENT_INTERFACE (PHOC_TYPE_ANIMATABLE,
+                                                 phoc_output_shield_animatable_interface_init))
+ 
++/*
++ * Boot logo: the three parts of the postmarketOS "spin" Plymouth theme (right.png, top.png,
++ * left.png from $PHOC_SHIELD_LOGO_DIR), with the same size, position and "spin" (the parts fade
++ * out and in one after the other) as pmos-spin.script, so the shield looks like the boot splash.
++ * Used instead of the spinner while the session starts. Shown at once (no fade-in).
++ */
++#define LOGO_FADE 0.3        /* pmos-spin: logo_fade_duration */
++#define LOGO_CYCLE (LOGO_FADE * 6)
++#define LOGO_UNITS_PER_S 0.5 /* plymouth adds 0.02 per refresh at 25 refreshes per second */
++
++static const char *logo_files[3] = { "right.png", "top.png", "left.png" };
++
++/*
++ * Free the logo. The frame callback is not removed here: this also runs from inside the
++ * output's frame callback loop (end of the fade-out animation), where removing a callback
++ * corrupts the list. The callback notices the missing logo and returns G_SOURCE_REMOVE.
++ * Only on finalize (remove_callback = TRUE) it is removed directly.
++ */
++static void
++logo_clear (PhocOutputShield *self, gboolean remove_callback)
++{
++  if (remove_callback && self->logo_frame_id && self->output) {
++    phoc_animatable_remove_frame_callback (PHOC_ANIMATABLE (self), self->logo_frame_id);
++    self->logo_frame_id = 0;
++  }
++  for (int i = 0; i < 3; i++)
++    g_clear_object (&self->logo[i]);
++}
++
++
++static double
++logo_part_opacity (double t, double start)
++{
++  if (t >= start && t < start + LOGO_FADE)
++    return 1.0 - (t - start) / LOGO_FADE;
++  if (t >= start + LOGO_FADE && t < start + 2 * LOGO_FADE)
++    return (t - start - LOGO_FADE) / LOGO_FADE;
++  return 1.0;
++}
++
++
++static gboolean
++logo_frame_cb (PhocAnimatable *animatable, guint64 last_frame, gpointer user_data)
++{
++  PhocOutputShield *self = PHOC_OUTPUT_SHIELD (animatable);
++  double t;
++
++  if (self->logo[0] == NULL || self->output == NULL) {
++    self->logo_frame_id = 0;
++    return G_SOURCE_REMOVE;
++  }
++
++  t = fmod ((g_get_monotonic_time () - self->logo_start_us) / 1e6 * LOGO_UNITS_PER_S, LOGO_CYCLE);
++  for (int i = 0; i < 3; i++)
++    self->logo_alpha[i] = logo_part_opacity (t, i * 2 * LOGO_FADE);
++
++  phoc_output_damage_whole (self->output);
++  return G_SOURCE_CONTINUE;
++}
++
++
++static void
++logo_load (PhocOutputShield *self, const struct wlr_box *output_box, float scale)
++{
++  const char *dir = g_getenv ("PHOC_SHIELD_LOGO_DIR");
++  cairo_surface_t *img[3] = { NULL, NULL, NULL };
++  double w_px = output_box->width * scale, h_px = output_box->height * scale;
++  double ratio;
++  int iw, ih, tw, th;
++
++  if (dir == NULL || dir[0] == '\0')
++    return;
++
++  for (int i = 0; i < 3; i++) {
++    g_autofree char *path = g_build_filename (dir, logo_files[i], NULL);
++
++    img[i] = cairo_image_surface_create_from_png (path);
++    if (cairo_surface_status (img[i]) != CAIRO_STATUS_SUCCESS) {
++      g_warning ("Shield logo '%s' not loaded", path);
++      goto out;
++    }
++  }
++
++  /* pmos-spin.script: fit into min(40 % height, 1/6 height) x min(70 % width, 1/4 width) */
++  iw = cairo_image_surface_get_width (img[0]);
++  ih = cairo_image_surface_get_height (img[0]);
++  ratio = MIN (MIN (h_px * 0.4, h_px / 6.0) / ih, MIN (w_px * 0.7, w_px / 4.0) / iw);
++  tw = MAX (1, (int) (iw * ratio + 0.5));
++  th = MAX (1, (int) (ih * ratio + 0.5));
++
++  for (int i = 0; i < 3; i++) {
++    cairo_t *cr;
++
++    self->logo[i] = phoc_cairo_texture_new (tw, th);
++    cr = phoc_cairo_texture_get_context (self->logo[i]);
++    if (cr == NULL) {
++      logo_clear (self, FALSE);
++      goto out;
++    }
++    cairo_save (cr);
++    cairo_set_operator (cr, CAIRO_OPERATOR_CLEAR);
++    cairo_paint (cr);
++    cairo_restore (cr);
++    cairo_save (cr);
++    cairo_scale (cr, (double) tw / cairo_image_surface_get_width (img[i]),
++                 (double) th / cairo_image_surface_get_height (img[i]));
++    cairo_set_source_surface (cr, img[i], 0, 0);
++    cairo_pattern_set_filter (cairo_get_source (cr), CAIRO_FILTER_GOOD);
++    cairo_paint (cr);
++    cairo_restore (cr);
++    phoc_cairo_texture_update (self->logo[i]);
++    self->logo_alpha[i] = 1.0;
++  }
++
++  /* centered, in layout coordinates */
++  self->logo_box = (struct wlr_box) {
++    .width = (int) (tw / scale + 0.5),
++    .height = (int) (th / scale + 0.5),
++  };
++  self->logo_box.x = output_box->x + (output_box->width - self->logo_box.width) / 2;
++  self->logo_box.y = output_box->y + (output_box->height - self->logo_box.height) / 2;
++
++  self->logo_start_us = g_get_monotonic_time ();
++  self->logo_frame_id = phoc_animatable_add_frame_callback (PHOC_ANIMATABLE (self), logo_frame_cb,
++                                                            NULL, NULL);
++  g_debug ("Shield logo from '%s', %dx%d px", dir, tw, th);
++
++ out:
++  for (int i = 0; i < 3; i++) {
++    if (img[i])
++      cairo_surface_destroy (img[i]);
++  }
++}
++
++
++static void
++render_logo (PhocOutputShield *self, PhocRenderContext *ctx)
++{
++  float shield_alpha = phoc_color_rect_get_alpha (self->color_rect);
++
++  for (int i = 0; i < 3; i++) {
++    struct wlr_texture *texture = phoc_cairo_texture_get_texture (self->logo[i]);
++    struct wlr_box box = self->logo_box;
++    pixman_region32_t damage;
++    float alpha = self->logo_alpha[i] * shield_alpha;
++
++    if (texture == NULL)
++      continue;
++
++    box.x -= ctx->output->lx;
++    box.y -= ctx->output->ly;
++    phoc_utils_scale_box (&box, ctx->output->wlr_output->scale);
++    phoc_output_transform_box (ctx->output, &box);
++    if (!phoc_utils_is_damaged (&box, ctx->damage, NULL, &damage)) {
++      pixman_region32_fini (&damage);
++      continue;
++    }
++    wlr_render_pass_add_texture (ctx->render_pass, &(struct wlr_render_texture_options) {
++        .alpha     = &alpha,
++        .texture   = texture,
++        .dst_box   = box,
++        .clip      = &damage,
++        .transform = ctx->output->wlr_output->transform,
++      });
++    pixman_region32_fini (&damage);
++  }
++}
++
++
+ static guint
+ phoc_output_shield_add_frame_callback (PhocAnimatable   *iface,
+                                        PhocFrameCallback callback,
+@@ -146,6 +322,7 @@ stop_render (PhocOutputShield *self)
+   if (self->spinner)
+     phoc_bling_unmap (PHOC_BLING (self->spinner));
+   g_clear_object (&self->image);
++  logo_clear (self, FALSE);
+ 
+   if (renderer)
+     g_clear_signal_handler (&self->render_end_id, renderer);
+@@ -261,6 +438,8 @@ on_render (PhocOutputShield *self, PhocRenderContext *ctx)
+   phoc_bling_render (PHOC_BLING (self->color_rect), ctx);
+   if (self->image)
+     render_image (self, ctx);
++  if (self->logo[0])
++    render_logo (self, ctx);
+   if (self->spinner)
+     phoc_bling_render (PHOC_BLING (self->spinner), ctx);
+ }
+@@ -297,6 +476,11 @@ start_render (PhocOutputShield *self, gboolean show_spinner)
+     }
+   }
+ 
++  if (show_spinner && self->logo[0] == NULL && self->logo_frame_id == 0)
++    logo_load (self, &output_box, output->scale);
++  if (self->logo[0])
++    show_spinner = FALSE;
++
+   if (show_spinner && !self->spinner) {
+     int lx, ly;
+ 
+@@ -336,6 +520,7 @@ phoc_output_shield_finalize (GObject *object)
+   g_clear_object (&self->easer);
+   g_clear_object (&self->animation);
+   g_clear_object (&self->spinner);
++  logo_clear (self, TRUE);
+ 
+   G_OBJECT_CLASS (phoc_output_shield_parent_class)->finalize (object);
+ }
+diff --git a/src/server.c b/src/server.c
+index eda173d..822d417 100644
+--- a/src/server.c
++++ b/src/server.c
+@@ -309,9 +309,11 @@ on_shell_state_changed (PhocServer *self, GParamSpec *pspec, PhocPhoshPrivate *p
+ 
+   switch (state) {
+   case PHOC_PHOSH_PRIVATE_SHELL_STATE_UP:
+-    /* Shell is up, lower shields */
++    /* Shell is up, lower shields (fade time from $PHOC_SHIELD_FADE_MS, default 0) */
+     wl_list_for_each (output, &self->desktop->outputs, link)
+-      phoc_output_lower_shield (output, PHOC_EASING_EASE_IN_CUBIC, 0);
++      phoc_output_lower_shield (output, PHOC_EASING_EASE_IN_CUBIC,
++                                g_getenv ("PHOC_SHIELD_FADE_MS") ?
++                                (guint) g_ascii_strtoull (g_getenv ("PHOC_SHIELD_FADE_MS"), NULL, 10) : 0);
+     /* don't show session init spinner again */
+     self->show_spinner = FALSE;
+     self->allow_input = TRUE;

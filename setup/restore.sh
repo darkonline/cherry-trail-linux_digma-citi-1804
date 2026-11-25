@@ -11,13 +11,14 @@
 #
 # Hardware part (always):
 #   1. apk update/upgrade (needed so the kernel headers match the kernel), build tools
-#   2. touchscreen firmware + kernel parameters (touch, audio quirk, SST audio driver), initramfs modules, cursor, 150 % scale
+#   2. touchscreen firmware + kernel parameters (touch, audio quirk, SST audio driver), initramfs modules, cursor, 150 % scale,
+#      touchscreen jitter filter (udev rule)
 #   3. removes phone apps (no modem in this tablet), disables ModemManager
 #   4. builds and installs hci_uart.ko (Bluetooth) and intel_atomisp2_pm.ko (deep sleep) for the installed kernel
 #   5. mkinitfs
 #   6. user settings: PulseAudio tsched=0, speaker/headphone switcher, power button, on-screen keyboard,
 #      background cleanup
-# Optional app groups (asked one by one): see section 7.
+# Optional (asked one by one, default = no): 7a. smooth boot and login, 7b. patched phoc, 7. app groups.
 # The cameras are NOT touched (disabled by default, see camera/README.md). Then reboot.
 set -eu
 
@@ -74,6 +75,11 @@ run sudo install -D -m644 "$REPO/config/etc/phosh/phoc.ini" /etc/phosh/phoc.ini
 # The old sleep hook (unload Wi-Fi before sleep) left the rtl8723bs chip stuck after a later
 # warm reboot (Wi-Fi gone until a full power-off). Remove it if an earlier run installed it.
 run sudo rm -f /usr/lib/systemd/system-sleep/citi1804-wifi
+# touchscreen: with a finger held still the panel jumps by 8-14 units on one axis, so long presses
+# get cancelled. The kernel jitter filter (fuzz) is set by a udev rule (the touchscreen-fuzz-*
+# properties in i2c_touchscreen_props did not take effect on 6.18.63).
+run sudo install -D -m755 "$REPO/config/usr/local/lib/citi1804/touch-fuzz.py" /usr/local/lib/citi1804/touch-fuzz.py
+run sudo install -D -m644 "$REPO/config/etc/udev/rules.d/90-citi1804-touch-fuzz.rules" /etc/udev/rules.d/90-citi1804-touch-fuzz.rules
 if ! grep -q '^WLR_NO_HARDWARE_CURSORS=1' /etc/environment 2>/dev/null; then
 	if [ "$CHECK" = 1 ]; then echo "[check] add WLR_NO_HARDWARE_CURSORS=1 to /etc/environment"
 	else echo 'WLR_NO_HARDWARE_CURSORS=1' | sudo tee -a /etc/environment >/dev/null; fi
@@ -132,6 +138,18 @@ run systemctl --user unmask gnome-software.service || true
 run gsettings set org.gnome.desktop.search-providers disabled "['org.gnome.Software.desktop']"
 
 say "Hardware setup done."
+
+# ================================================================ 7a/7b. BOOT AND SCREEN (asked)
+if [ "$APPS" != none ]; then
+	if ask "Smooth boot: no text and no boot menu, boot logo without text, login straight into Phosh which starts locked (like a phone)?"; then
+		run sudo sh "$REPO/tools/boot-polish.sh"
+	fi
+	if ask "Patched phoc (no black flash on rotation, boot logo instead of the spinner while the session starts; needs ~150 build packages and a ~15 min build)?"; then
+		run sudo apk add glib-dev gmobile-dev gnome-desktop-dev json-glib-dev libdrm-dev libinput-dev 			libxkbcommon-dev mesa-dev meson pixman-dev wayland-dev wayland-protocols systemd-dev glslang 			hwdata-dev libcap-dev libdisplay-info-dev libxcb-dev xcb-util-image-dev xcb-util-renderutil-dev 			xcb-util-wm-dev xkeyboard-config-dev xwayland-dev lcms2-dev vulkan-loader-dev vulkan-headers
+		run sh "$REPO/phoc/build.sh"
+		run sudo sh "$REPO/phoc/install.sh"
+	fi
+fi
 
 # ================================================================ 7. OPTIONAL APPS (asked one by one)
 if [ "$APPS" != none ]; then

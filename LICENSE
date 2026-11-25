@@ -3,7 +3,8 @@ MIT License
 Copyright (c) 2026 darkonline
 
 Applies to all files in this repository except bluetooth/src/, power-isp/pm.c, camera/src/ and camera/test/ (Linux kernel
-sources, GPL-2.0) and firmware/ (vendor firmware, not covered by this license).
+sources, GPL-2.0), phoc/patches/ (changes to phoc, GPL-3.0-only like phoc) and firmware/ (vendor
+firmware, not covered by this license).
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

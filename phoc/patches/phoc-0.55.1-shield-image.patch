@@ -1,0 +1,176 @@
+diff --git a/src/output-shield.c b/src/output-shield.c
+index ec24e1b..491a8d4 100644
+--- a/src/output-shield.c
++++ b/src/output-shield.c
+@@ -10,6 +10,7 @@
+ 
+ #include "phoc-config.h"
+ 
++#include "cairo-texture.h"
+ #include "color-rect.h"
+ #include "output-shield.h"
+ #include "phoc-animation.h"
+@@ -18,6 +19,8 @@
+ 
+ #include "render-private.h"
+ 
++#include <cairo.h>
++
+ #define PHOC_ANIM_DURATION_SHIELD_MS 250 /* ms */
+ #define SPINNER_SIZE 32
+ 
+@@ -40,6 +43,10 @@ struct _PhocOutputShield {
+ 
+   PhocColorRect      *color_rect;
+   PhocSpinner        *spinner;
++  /* optional picture under the startup spinner, see PHOC_SHIELD_IMAGE */
++  PhocCairoTexture   *image;
++  int                 image_width;
++  int                 image_height;
+   PhocOutput         *output;
+   PhocTimedAnimation *animation;
+   PhocPropertyEaser  *easer;
+@@ -138,6 +145,7 @@ stop_render (PhocOutputShield *self)
+   phoc_bling_unmap (PHOC_BLING (self->color_rect));
+   if (self->spinner)
+     phoc_bling_unmap (PHOC_BLING (self->spinner));
++  g_clear_object (&self->image);
+ 
+   if (renderer)
+     g_clear_signal_handler (&self->render_end_id, renderer);
+@@ -145,6 +153,105 @@ stop_render (PhocOutputShield *self)
+ 
+ 
+ 
++/*
++ * Startup picture: instead of a plain black shield with a spinner, show the
++ * PNG from $PHOC_SHIELD_IMAGE scaled to cover the output, darkened by
++ * $PHOC_SHIELD_DIM (0..1, default 0.4). Only used while the session starts
++ * (shield raised with spinner). Unset variable or unreadable file: black as before.
++ */
++static PhocCairoTexture *
++shield_image_new (int width, int height)
++{
++  const char *path = g_getenv ("PHOC_SHIELD_IMAGE");
++  const char *dim_str = g_getenv ("PHOC_SHIELD_DIM");
++  double dim = 0.4, scale;
++  cairo_surface_t *img;
++  PhocCairoTexture *texture;
++  cairo_t *cr;
++  int iw, ih;
++
++  if (path == NULL || path[0] == '\0' || width <= 0 || height <= 0)
++    return NULL;
++
++  if (dim_str)
++    dim = CLAMP (g_ascii_strtod (dim_str, NULL), 0.0, 1.0);
++
++  img = cairo_image_surface_create_from_png (path);
++  if (cairo_surface_status (img) != CAIRO_STATUS_SUCCESS) {
++    g_warning ("Shield image '%s' not loaded: %s", path,
++               cairo_status_to_string (cairo_surface_status (img)));
++    cairo_surface_destroy (img);
++    return NULL;
++  }
++  iw = cairo_image_surface_get_width (img);
++  ih = cairo_image_surface_get_height (img);
++
++  texture = phoc_cairo_texture_new (width, height);
++  cr = phoc_cairo_texture_get_context (texture);
++  if (cr == NULL || iw <= 0 || ih <= 0) {
++    cairo_surface_destroy (img);
++    g_clear_object (&texture);
++    return NULL;
++  }
++
++  /* cover: fill the whole output, crop what does not fit, keep proportions */
++  scale = MAX ((double) width / iw, (double) height / ih);
++  cairo_save (cr);
++  cairo_set_source_rgb (cr, 0, 0, 0);
++  cairo_paint (cr);
++  cairo_translate (cr, (width - iw * scale) / 2.0, (height - ih * scale) / 2.0);
++  cairo_scale (cr, scale, scale);
++  cairo_set_source_surface (cr, img, 0, 0);
++  cairo_pattern_set_filter (cairo_get_source (cr), CAIRO_FILTER_GOOD);
++  cairo_paint (cr);
++  cairo_restore (cr);
++  if (dim > 0) {
++    cairo_set_source_rgba (cr, 0, 0, 0, dim);
++    cairo_paint (cr);
++  }
++  cairo_surface_destroy (img);
++  phoc_cairo_texture_update (texture);
++
++  g_debug ("Shield image '%s' %dx%d -> %dx%d, dim %.2f", path, iw, ih, width, height, dim);
++  return texture;
++}
++
++
++static void
++render_image (PhocOutputShield *self, PhocRenderContext *ctx)
++{
++  PhocServer *server = phoc_server_get_default ();
++  PhocDesktop *desktop = phoc_server_get_desktop (server);
++  struct wlr_texture *texture = phoc_cairo_texture_get_texture (self->image);
++  struct wlr_box box;
++  pixman_region32_t damage;
++  float alpha = phoc_color_rect_get_alpha (self->color_rect);
++
++  if (texture == NULL)
++    return;
++
++  wlr_output_layout_get_box (desktop->layout, ctx->output->wlr_output, &box);
++  box.x -= ctx->output->lx;
++  box.y -= ctx->output->ly;
++  phoc_utils_scale_box (&box, ctx->output->wlr_output->scale);
++  phoc_output_transform_box (ctx->output, &box);
++
++  if (!phoc_utils_is_damaged (&box, ctx->damage, NULL, &damage)) {
++    pixman_region32_fini (&damage);
++    return;
++  }
++
++  wlr_render_pass_add_texture (ctx->render_pass, &(struct wlr_render_texture_options) {
++      .alpha     = &alpha,
++      .texture   = texture,
++      .dst_box   = box,
++      .clip      = &damage,
++      .transform = ctx->output->wlr_output->transform,
++    });
++  pixman_region32_fini (&damage);
++}
++
++
+ static void
+ on_render (PhocOutputShield *self, PhocRenderContext *ctx)
+ {
+@@ -152,6 +259,8 @@ on_render (PhocOutputShield *self, PhocRenderContext *ctx)
+     return;
+ 
+   phoc_bling_render (PHOC_BLING (self->color_rect), ctx);
++  if (self->image)
++    render_image (self, ctx);
+   if (self->spinner)
+     phoc_bling_render (PHOC_BLING (self->spinner), ctx);
+ }
+@@ -174,6 +283,20 @@ start_render (PhocOutputShield *self, gboolean show_spinner)
+   phoc_color_rect_set_box (self->color_rect, &output_box);
+   phoc_bling_map (PHOC_BLING (self->color_rect));
+ 
++  if (show_spinner) {
++    float scale = output->scale;
++    int w = (int) (output_box.width * scale + 0.5);
++    int h = (int) (output_box.height * scale + 0.5);
++
++    if (self->image && (self->image_width != w || self->image_height != h))
++      g_clear_object (&self->image);
++    if (self->image == NULL) {
++      self->image = shield_image_new (w, h);
++      self->image_width = w;
++      self->image_height = h;
++    }
++  }
++
+   if (show_spinner && !self->spinner) {
+     int lx, ly;
+ 

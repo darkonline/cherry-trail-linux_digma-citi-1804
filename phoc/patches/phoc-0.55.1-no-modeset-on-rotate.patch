@@ -1,0 +1,72 @@
+diff --git a/src/output.c b/src/output.c
+index d95d6db..ac3117f 100644
+--- a/src/output.c
++++ b/src/output.c
+@@ -858,6 +858,59 @@ adjust_frac_scale (double scale)
+ }
+ 
+ 
++/*
++ * phoc_output_fill_state() always calls wlr_output_state_set_enabled() and
++ * sets a mode. In wlroots both set allow_reconfiguration, so the DRM backend
++ * does a full modeset (the panel goes black) even when only the transform or
++ * scale changes, e.g. on every screen rotation. If the output stays enabled
++ * and keeps its mode, drop those no-op fields and the reconfiguration flag.
++ */
++static void
++phoc_output_state_drop_noop_reconfig (PhocOutput              *self,
++                                      struct wlr_output_state *pending)
++{
++  struct wlr_output *wlr_output = self->wlr_output;
++
++  if (!wlr_output->enabled)
++    return;
++
++  if ((pending->committed & WLR_OUTPUT_STATE_ENABLED) && !pending->enabled)
++    return;
++
++  if (pending->committed & WLR_OUTPUT_STATE_MODE) {
++    switch (pending->mode_type) {
++    case WLR_OUTPUT_STATE_MODE_FIXED:
++      if (pending->mode != wlr_output->current_mode)
++        return;
++      break;
++    case WLR_OUTPUT_STATE_MODE_CUSTOM:
++      if (pending->custom_mode.width != wlr_output->width ||
++          pending->custom_mode.height != wlr_output->height ||
++          pending->custom_mode.refresh != wlr_output->refresh)
++        return;
++      break;
++    default:
++      return;
++    }
++  }
++
++  if ((pending->committed & WLR_OUTPUT_STATE_RENDER_FORMAT) &&
++      pending->render_format != wlr_output->render_format)
++    return;
++
++  if (pending->committed & WLR_OUTPUT_STATE_ADAPTIVE_SYNC_ENABLED) {
++    bool enabled = wlr_output->adaptive_sync_status != WLR_OUTPUT_ADAPTIVE_SYNC_DISABLED;
++
++    if (enabled != pending->adaptive_sync_enabled)
++      return;
++  }
++
++  pending->committed &= ~(WLR_OUTPUT_STATE_ENABLED | WLR_OUTPUT_STATE_MODE);
++  pending->allow_reconfiguration = false;
++  g_debug ("%s: no mode change, applying config without modeset", wlr_output->name);
++}
++
++
+ static void
+ phoc_output_fill_state (PhocOutput              *self,
+                         PhocOutputConfig        *output_config,
+@@ -2019,6 +2072,7 @@ output_manager_apply_config (PhocDesktop                        *desktop,
+ 
+     oc = phoc_output_config_head_to_output_config (output, config_head);
+     phoc_output_fill_state (output, oc, &pending);
++    phoc_output_state_drop_noop_reconfig (output, &pending);
+ 
+     if (test_only) {
+       ok &= wlr_output_test_state (wlr_output, &pending);
