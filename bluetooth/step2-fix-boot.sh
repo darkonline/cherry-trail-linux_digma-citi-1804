@@ -18,4 +18,4 @@ sed -i 's|^linux .*|linux vmlinuz-lts|' /boot/loader/entries/pmos.conf
 	for f in /boot/loader/loader.conf /boot/loader/entries/*.conf; do echo "--- $f"; cat "$f"; done
 } > /home/user/bootcheck2.txt 2>&1
 chown user /home/user/bootcheck2.txt
-echo "Done. Do not reboot yet; let Claude check."
+echo "Done. Do not reboot yet; check ~/bootcheck2.txt first."

@@ -26,5 +26,5 @@ apk add -u linux-lts linux-lts-dev build-base
 echo "== 4. Put the old modules back so the backup entry stays usable"
 [ -d /lib/modules/$OLD ] || cp -a /root/modules-6.18.60.bak /lib/modules/$OLD
 
-echo "== Done. Do NOT reboot yet; let Claude check /boot first."
+echo "== Done. Do NOT reboot yet; check /boot and /boot/loader/entries first."
 ls /lib/modules
