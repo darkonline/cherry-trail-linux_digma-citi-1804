@@ -94,29 +94,21 @@ else
 fi
 
 say "4. Bluetooth (hci_uart) and deep sleep (intel_atomisp2_pm) for $KVER"
+# The build script, its sources and an apk hook are installed, so the modules are rebuilt by
+# themselves after a kernel update (otherwise Bluetooth and deep sleep silently stop working).
+L=/usr/local/lib/citi1804
+run sudo install -D -m755 "$REPO/tools/build-modules.sh" "$L/build-modules.sh"
+run sudo install -D -m644 -t "$L/modules-src/bluetooth" "$REPO/bluetooth/Makefile"
+run sudo install -D -m644 -t "$L/modules-src/bluetooth/src" "$REPO"/bluetooth/src/*.c "$REPO"/bluetooth/src/*.h
+run sudo install -D -m644 -t "$L/modules-src/power-isp" "$REPO/power-isp/Makefile" "$REPO/power-isp/pm.c"
+if [ "$CHECK" = 1 ]; then echo "[check] write 6.18.63 to $L/modules-src/VERSION"
+else echo 6.18.63 | sudo tee "$L/modules-src/VERSION" >/dev/null; fi
+run sudo install -D -m755 "$REPO/config/etc/apk/commit_hooks.d/citi1804-modules" /etc/apk/commit_hooks.d/citi1804-modules
 if [ "$CHECK" = 1 ]; then
 	if [ "$V" = 6.18.63 ]; then echo "[check] bundled 6.18.63 sources will be used"
 	else echo "[check] sources v$V will be downloaded from git.kernel.org"; fi
 else
-	B=$(mktemp -d); trap 'rm -rf "$B"' EXIT
-	mkdir -p "$B/bt" "$B/isp"
-	cp "$REPO/bluetooth/Makefile" "$REPO/bluetooth/build-bt.sh" "$B/bt/"
-	cp "$REPO/power-isp/Makefile" "$B/isp/"
-	BT_FILES="btbcm.h btintel.h btqca.h btrtl.h hci_ag6xx.c hci_ath.c hci_bcm.c hci_bcsp.c hci_h4.c hci_h5.c hci_intel.c hci_ldisc.c hci_ll.c hci_qca.c hci_serdev.c hci_uart.h"
-	if [ "$V" = 6.18.63 ]; then
-		for f in $BT_FILES; do cp "$REPO/bluetooth/src/$f" "$B/bt/"; done
-		cp "$REPO/power-isp/pm.c" "$B/isp/"
-	else
-		echo "kernel $V differs from the bundled 6.18.63 sources: downloading v$V from git.kernel.org"
-		# shellcheck disable=SC2086
-		fetch_src "$V" drivers/bluetooth "$B/bt" $BT_FILES
-		fetch_src "$V" drivers/platform/x86/intel/atomisp2 "$B/isp" pm.c
-	fi
-	(cd "$B/bt" && KVER="$KVER" sh build-bt.sh)
-	(cd "$B/isp" && make KVER="$KVER" >/dev/null && ls -la intel_atomisp2_pm.ko)
-	sudo install -D -m644 "$B/bt/hci_uart.ko" "/lib/modules/$KVER/updates/hci_uart.ko"
-	sudo install -D -m644 "$B/isp/intel_atomisp2_pm.ko" "/lib/modules/$KVER/updates/intel_atomisp2_pm.ko"
-	sudo depmod "$KVER"
+	sudo "$L/build-modules.sh" "$KVER"
 fi
 
 say "5. mkinitfs (applies kernel parameters and initramfs modules)"

@@ -68,7 +68,7 @@
 6. **Масштаб 150 %.** Секция `[output:DSI-1]` / `scale = 1.5` в `/etc/phosh/phoc.ini`.
 7. **Звук: PulseAudio.** `~/.config/pulse/default.pa` с `module-udev-detect tsched=0` (убирает заикания).
 8. **Автопереключение динамик ↔ наушники.** `jack-profile-switch.sh` → `~/.local/bin/`, `.service` → `~/.config/systemd/user/`, затем `systemctl --user enable --now jack-profile-switch`.
-9. **Bluetooth.** См. `bluetooth/build-bt.sh`. Модуль нужно пересобирать после **каждого** обновления ядра.
+9. **Bluetooth и глубокий сон.** Модули `hci_uart` и `intel_atomisp2_pm` собирает `tools/build-modules.sh` (исходники из `bluetooth/` и `power-isp/`). `setup/restore.sh` ставит его в `/usr/local/lib/citi1804/` вместе с хуком apk `config/etc/apk/commit_hooks.d/citi1804-modules`, поэтому после обновления ядра модули собираются сами, а новое ядро начинает работать с ними после перезагрузки. Журнал: `/var/log/citi1804-modules.log`; пересобрать вручную: `sudo /usr/local/lib/citi1804/build-modules.sh --force`.
 
 ### Известные проблемы
 
@@ -91,7 +91,7 @@
 | `camera/` | драйверы камер (atomisp, ov2680, gc0310), включение и выключение; по умолчанию выключены |
 | `setup/` | `restore.sh` — вся настройка железа одной командой, приложения — по запросу; `save-state.sh` — снимок настроек планшета |
 | `install/` | установка на eMMC |
-| `tools/` | замер батареи, масштаб, разгрузка фоновых служб, тесты звука, `boot-polish.sh` (загрузка и вход) |
+| `tools/` | замер батареи, масштаб, разгрузка фоновых служб, тесты звука, `boot-polish.sh` (загрузка и вход), `build-modules.sh` (сборка модулей Bluetooth и глубокого сна под каждое новое ядро) |
 | `phoc/` | патчи phoc 0.55.1, сборка и установка без изменения системных файлов (см. `phoc/README.md`) |
 | `diagnostics/scripts/` | скрипты диагностики, в т.ч. разбор сырых данных тача |
 | `docs/` | скриншот, журнал замера перенастроек экрана при повороте |
@@ -175,7 +175,7 @@ Paths under `config/` mirror the system: `config/etc/...` → `/etc/...`, `confi
 6. **150 % scale.** Add `[output:DSI-1]` / `scale = 1.5` to `/etc/phosh/phoc.ini`.
 7. **PulseAudio.** `~/.config/pulse/default.pa` with `module-udev-detect tsched=0` (fixes stutter).
 8. **Speaker ↔ headphones switching.** `jack-profile-switch.sh` → `~/.local/bin/`, `.service` → `~/.config/systemd/user/`, then `systemctl --user enable --now jack-profile-switch`.
-9. **Bluetooth.** See `bluetooth/build-bt.sh`. The module must be rebuilt after **every** kernel update.
+9. **Bluetooth and deep sleep.** The `hci_uart` and `intel_atomisp2_pm` modules are built by `tools/build-modules.sh` (sources in `bluetooth/` and `power-isp/`). `setup/restore.sh` installs it to `/usr/local/lib/citi1804/` together with the apk hook `config/etc/apk/commit_hooks.d/citi1804-modules`, so after a kernel update the modules are built automatically and the new kernel uses them after a reboot. Log: `/var/log/citi1804-modules.log`; manual rebuild: `sudo /usr/local/lib/citi1804/build-modules.sh --force`.
 
 ### Known issues
 
@@ -198,7 +198,7 @@ Paths under `config/` mirror the system: `config/etc/...` → `/etc/...`, `confi
 | `camera/` | camera drivers (atomisp, ov2680, gc0310), enable and disable; disabled by default |
 | `setup/` | `restore.sh`: the whole hardware setup in one command, apps on request; `save-state.sh`: snapshot of the tablet settings |
 | `install/` | eMMC installation |
-| `tools/` | battery logger, scaling, background-service cleanup, audio tests, `boot-polish.sh` (boot and login) |
+| `tools/` | battery logger, scaling, background-service cleanup, audio tests, `boot-polish.sh` (boot and login), `build-modules.sh` (builds the Bluetooth and deep-sleep modules for every new kernel) |
 | `phoc/` | phoc 0.55.1 patches, build and install without changing system files (see `phoc/README.md`) |
 | `diagnostics/scripts/` | diagnostic scripts, including a raw touch data parser |
 | `docs/` | screenshot, log of display modesets measured during rotation |

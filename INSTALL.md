@@ -46,7 +46,7 @@
 
 ### Шаг 4 (быстрый путь). Всё одной командой
 
-Шаги 4, 5 и 5а можно выполнить одним скриптом. Он обновляет систему, применяет все настройки железа и собирает модули Bluetooth и глубокого сна под установленное ядро (при другой версии ядра сам скачивает нужные исходники с kernel.org). После этого он **по очереди спрашивает** про дополнительные приложения (шаг 7): LibreOffice, утилиты, Pipeline, настройки Firefox, Telegram, Spotify. По умолчанию (Enter) — «нет»:
+Шаги 4, 5 и 5а можно выполнить одним скриптом. Он обновляет систему, применяет все настройки железа и собирает модули Bluetooth и глубокого сна под установленное ядро (при другой версии ядра сам скачивает нужные исходники с kernel.org). Он же ставит автопересборку: после каждого обновления ядра эти модули собираются сами. После этого он **по очереди спрашивает** про дополнительные приложения (шаг 7): LibreOffice, утилиты, Pipeline, настройки Firefox, Telegram, Spotify. По умолчанию (Enter) — «нет»:
 
 ```sh
 passwd
@@ -120,7 +120,7 @@ sudo reboot
 ```
 
 - Исходники в `src/` взяты из ядра **6.18.63**. Если `uname -r` показывает другую версию, скачайте с <https://kernel.org> архив ядра этой версии и замените файлы из `src/` файлами из папки `drivers/bluetooth/` архива.
-- ⚠️ **После каждого обновления ядра модуль нужно собирать заново.** Без этого Bluetooth пропадёт, а остальная система будет работать.
+- ⚠️ **После обновления ядра модуль нужно собрать заново**, иначе Bluetooth пропадёт (остальная система будет работать). `setup/restore.sh` делает это сам: он ставит `tools/build-modules.sh` и хук apk, которые после каждого обновления ядра собирают модули Bluetooth и глубокого сна. При ручной установке без автопересборки повторяйте этот шаг.
 
 ### Шаг 5а. Глубокий сон (экономия батареи во сне)
 
@@ -134,7 +134,7 @@ sudo depmod $(uname -r)
 sudo reboot
 ```
 
-Проверка после сна: `sudo cat /sys/kernel/debug/pmc_atom/sleep_state` — значение `S0I3 Residency` должно расти. Как и Bluetooth, модуль пересобирается после каждого обновления ядра.
+Проверка после сна: `sudo cat /sys/kernel/debug/pmc_atom/sleep_state` — значение `S0I3 Residency` должно расти. Как и Bluetooth, модуль нужен заново под каждое новое ядро; автопересборка из `setup/restore.sh` собирает и его.
 
 ### Шаг 6. Установка на внутреннюю память — стирает Windows
 
@@ -224,7 +224,7 @@ Step-by-step installation of postmarketOS on the Digma CITI 1804 for a Windows u
 
 ### Step 4 (quick path). Everything with one command
 
-Steps 4, 5 and 5a can be done by one script. It updates the system, applies all hardware settings and builds the Bluetooth and deep-sleep modules for the installed kernel (for another kernel version it downloads the matching sources from kernel.org). Then it **asks one by one** about optional apps (step 7): LibreOffice, utilities, Pipeline, Firefox settings, Telegram, Spotify. The default (Enter) is "no":
+Steps 4, 5 and 5a can be done by one script. It updates the system, applies all hardware settings and builds the Bluetooth and deep-sleep modules for the installed kernel (for another kernel version it downloads the matching sources from kernel.org). It also installs the automatic rebuild: after every kernel update these modules are built by themselves. Then it **asks one by one** about optional apps (step 7): LibreOffice, utilities, Pipeline, Firefox settings, Telegram, Spotify. The default (Enter) is "no":
 
 ```sh
 passwd
@@ -298,7 +298,7 @@ sudo reboot
 ```
 
 - The sources in `src/` come from kernel **6.18.63**. If `uname -r` shows another version, download that kernel version from <https://kernel.org> and replace the `src/` files with the ones from its `drivers/bluetooth/` folder.
-- ⚠️ **Rebuild the module after every kernel update.** Otherwise Bluetooth disappears; the rest of the system keeps working.
+- ⚠️ **After a kernel update the module must be built again**, otherwise Bluetooth disappears (the rest of the system keeps working). `setup/restore.sh` takes care of it: it installs `tools/build-modules.sh` and an apk hook that build the Bluetooth and deep-sleep modules after every kernel update. With a manual setup without the automatic rebuild, repeat this step.
 
 ### Step 5a. Deep sleep (battery life in suspend)
 
@@ -312,7 +312,7 @@ sudo depmod $(uname -r)
 sudo reboot
 ```
 
-Check after a suspend: `sudo cat /sys/kernel/debug/pmc_atom/sleep_state`; `S0I3 Residency` should grow. Like Bluetooth, rebuild it after every kernel update.
+Check after a suspend: `sudo cat /sys/kernel/debug/pmc_atom/sleep_state`; `S0I3 Residency` should grow. Like Bluetooth, the module is needed again for every new kernel; the automatic rebuild from `setup/restore.sh` builds it too.
 
 ### Step 6. Install to internal storage (erases Windows)
 

@@ -1,0 +1,10 @@
+#!/bin/sh
+# Digma CITI 1804: after every apk run, build Bluetooth (hci_uart) and deep-sleep
+# (intel_atomisp2_pm) modules for a newly installed kernel. Does nothing if they are present.
+# See /usr/local/lib/citi1804/build-modules.sh
+case "$1" in
+post-commit)
+	[ -x /usr/local/lib/citi1804/build-modules.sh ] && /usr/local/lib/citi1804/build-modules.sh
+	;;
+esac
+exit 0
